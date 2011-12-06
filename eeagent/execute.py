@@ -10,7 +10,8 @@ class SupDExe(object):
 
     def __init__(self, **kwargs):
         self._working_dir = kwargs['directory']
-        self._factory = SupDPidanticFactory(kwargs)
+        self._eename = kwargs['name']
+        self._factory = SupDPidanticFactory(directory=self._working_dir, name=self._eename)
 
         sis = self._factory.stored_instances()
         self._known_pids = {}
@@ -34,12 +35,12 @@ class SupDExe(object):
     def poll(self):
         return self._factory.poll()
 
-def get_exe_factory(name, dict):
+def get_exe_factory(name, CFG):
 
     if name == "supd":
-        factory = SupDExe(dict)
+        factory = SupDExe(directory=CFG.launch_types.supd.directory, name=CFG.eeagent.name)
     elif name == "pyon":
-        factory = PyonExe(dict)
+        factory = PyonExe()
     else:
         raise EEAgentParameterException("%s is an unknown launch type" % (lt))
 

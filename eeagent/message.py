@@ -1,15 +1,23 @@
 from dashi import DashiConnection
 from datetime import datetime
+import threading
+from dashi.bootstrap import dashi_connect
 from eeagent.eeagent_exceptions import EEAgentParameterException
+
+def eeagent_lock(func):
+    def call(self, *args,**kwargs):
+        with self._lock:
+            return func(*args,**kwargs)
+    return call
 
 
 class EEAgentMessageHandler(object):
 
     def __init__(self, CFG, factory_map, log):
-        self.pd_name = CFG.pd.name
-        self.exchange = CFG.ampq.exchange
+        self.pd_name = CFG.pd.topic
+        self.exchange = CFG.server.amqp.exchange
         self._log = log
-        
+        self._lock = threading.RLock()
         self.dashi = dashi_connect(self.pd_name, CFG)
         self._factory_map = factory_map
 
@@ -25,6 +33,7 @@ class EEAgentMessageHandler(object):
     def _unmake_id(self, id):
         return id.rsplit("-", 1)
 
+    @eeagent_lock
     def launch_process(self, u_pid, round, run_type, parameters):
 
         if run_type not in self._factory_map:
@@ -50,12 +59,14 @@ class EEAgentMessageHandler(object):
                 ps.append(processes)
         return ps
 
+    @eeagent_lock
     def terminate_process(self, u_pid, round):
         process = self._find_proc(u_pid, round)
         if not process:
             return
         process.terminate()
 
+    @eeagent_lock
     def beat_it(self):
         d = self._get_beat_header()
         processes = []
@@ -66,6 +77,7 @@ class EEAgentMessageHandler(object):
 
         self.dashi.fire(self.pd_name, "heartbeat", message=d)
 
+    @eeagent_lock
     def get_error_info(self, u_pid, round):
         process = self._find_proc(u_pid, round)
         if not process:
@@ -75,6 +87,7 @@ class EEAgentMessageHandler(object):
         d['processes'] = [self._get_process_info(process),]
         return d
 
+    @eeagent_lock
     def cleanup(self, u_pid, round):
         process = self._find_proc(u_pid, round)
         if not process:

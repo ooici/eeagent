@@ -6,18 +6,25 @@ server:
     password: guest
     vhost: /
     heartbeat: 15
+    exchange: eeagent
 
-heartbeat: 30
+eeagent:
+    name: eeagent
+    heartbeat: 30
+    poll_interval: 2
 
 pd:
     name: PDHost1
-
-dashi:
-    exchange: eeagent
+    topic: PDHost1Topic
 
 launch_types:
     pyon:
-        working_dir: XXX
+        directory: /tmp
     supd:
-        working_dir: YYY
+        directory: /tmp
+
+loggers:
+  eeagent:
+    handlers: [console]
+    level: INFO
 
