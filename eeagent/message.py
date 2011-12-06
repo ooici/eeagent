@@ -25,7 +25,7 @@ class EEAgentMessageHandler(object):
 
         self.dashi.handle(self.launch_process, "launch_process")
         self.dashi.handle(self.terminate_process, "terminate_process")
-        self.dashi.handle(self.beat_it, "beat_it")
+        self.dashi.handle(self.dump_state, "dump_state")
         self.dashi.handle(self.get_error_info, "get_error_info")
         self.dashi.handle(self.cleanup, "cleanup")
 
@@ -34,6 +34,10 @@ class EEAgentMessageHandler(object):
 
     def _unmake_id(self, id):
         return id.rsplit("-", 1)
+
+    @eeagent_lock
+    def dump_state(self):
+        self._beat_it()
 
     @eeagent_lock
     def launch_process(self, u_pid, round, run_type, parameters):
@@ -73,6 +77,9 @@ class EEAgentMessageHandler(object):
 
     @eeagent_lock
     def beat_it(self):
+        self._beat_it()
+
+    def _beat_it(self):
         try:
             d = self._get_beat_header()
             processes = []

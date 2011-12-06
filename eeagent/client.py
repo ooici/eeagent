@@ -55,6 +55,9 @@ class EEAgentClient(Thread):
         round = int(argv[1])
         self.dashi.fire(self.ee_name, "terminate_process", u_pid=upid, round=round)
 
+    def dump(self):
+        self.dashi.fire(self.ee_name, "dump_state")
+
     def proc_clean(self, argv):
         upid = argv[0]
         round = int(argv[1])
@@ -79,10 +82,15 @@ def proc_term(talker, line_a):
 def proc_clean(talker, line_a):
     talker.proc_clean(line_a)
 
+def proc_dump(talker, line_a):
+    talker.dump()
+
+
 g_command_table = {}
 g_command_table['launch'] = launch
 g_command_table['terminate'] = proc_term
 g_command_table['cleanup'] = proc_clean
+g_command_table['dump'] = proc_dump
 
 
 def main(args=sys.argv[1:]):
