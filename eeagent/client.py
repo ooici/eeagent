@@ -50,6 +50,16 @@ class EEAgentClient(Thread):
         params['argv'] = argv[1:]
         self.dashi.fire(self.ee_name, "launch_process", u_pid=upid, round=0, run_type=EEAgentLaunchType.supd, parameters=params)
 
+    def proc_term(self, argv):
+        upid = argv[0]
+        round = int(argv[1])
+        self.dashi.fire(self.ee_name, "terminate_process", u_pid=upid, round=round)
+
+    def proc_clean(self, argv):
+        upid = argv[0]
+        round = int(argv[1])
+        self.dashi.fire(self.ee_name, "cleanup", u_pid=upid, round=round)
+
     def run(self):
         while not self.done:
             try:
@@ -63,8 +73,17 @@ class EEAgentClient(Thread):
 def launch(talker, line_a):
     talker.launch(line_a)
 
+def proc_term(talker, line_a):
+    talker.proc_term(line_a)
+
+def proc_clean(talker, line_a):
+    talker.proc_clean(line_a)
+
 g_command_table = {}
 g_command_table['launch'] = launch
+g_command_table['terminate'] = proc_term
+g_command_table['cleanup'] = proc_clean
+
 
 def main(args=sys.argv[1:]):
     global thread_list

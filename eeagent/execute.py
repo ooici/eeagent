@@ -9,11 +9,12 @@ class PidWrapper(object):
     users launch request in the event that the pidantic object failed to run.  This minimzes lost messages
     in the event of sqldb errors, supervisord errors, or pyon errors.
     """
-    def __init__(self, name, p=None):
+    def __init__(self, exe, name, p=None):
         self._name = name
         self._pidantic = p
+        self._exe = exe
         self._error_message = "Launch request lost on submission"
-        self._state = "LAUNCH_ERROR"
+        self._state = "STATE_EXITED"
 
     def get_name(self):
         return self._name
@@ -34,6 +35,17 @@ class PidWrapper(object):
     def set_error_message(self, msg):
         self._error_message = msg
 
+    def terminate(self):
+        if not self._pidantic:
+            return
+        self._pidantic.terminate()
+
+    def clean_up(self):
+        if not self._pidantic:
+            return
+        self._pidantic.cleanup()
+        self._exe.remove_proc(self)
+        
 class ForkExe(object):
 
     def __init__(self, **kwargs):
@@ -56,11 +68,11 @@ class SupDExe(object):
         self._known_pids = {}
         for s in sis:
             name = s.get_name()
-            pw = PidWrapper(name, s)
+            pw = PidWrapper(self, name, s)
             self._known_pids[name] = pw
 
     def run(self, name, parameters):
-        pw = PidWrapper(name)
+        pw = PidWrapper(self, name)
         try:
             command = parameters['exec'] + " " + ' '.join(parameters['argv'])
             self._known_pids[name] = pw
@@ -72,6 +84,8 @@ class SupDExe(object):
 
         return pw
 
+    def remove_proc(self, proc):
+        self._known_pids.pop(proc.get_name())
 
     def lookup_id(self, name):
         if name not in self._known_pids:

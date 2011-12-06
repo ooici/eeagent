@@ -10,7 +10,7 @@ server:
 
 eeagent:
     name: eeagent
-    heartbeat: 30
+    heartbeat: 10
     poll_interval: 2
 
     launch_types:

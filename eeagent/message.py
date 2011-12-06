@@ -97,10 +97,18 @@ class EEAgentMessageHandler(object):
 
     @eeagent_lock
     def cleanup(self, u_pid, round):
+        allowed_states = ["STATE_EXITED"]
         process = self._find_proc(u_pid, round)
         if not process:
             return
-        process.clean_up()
+        state = process.get_state()
+        if state not in allowed_states:
+            return
+
+        try:
+            process.clean_up()
+        except Exception, ex:
+            pass
 
     def _get_beat_header(self):
         d = {}
