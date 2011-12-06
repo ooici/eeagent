@@ -1,12 +1,19 @@
+import os
 from eeagent.eeagent_exceptions import EEAgentParameterException
+import os
 
 def validate_supd(CFG):
     x = CFG.eeagent.launch_types.supd.directory
+    if not os.path.exists(CFG.eeagent.launch_types.supd.directory):
+        os.mkdir(CFG.eeagent.launch_types.supd.directory)
 
 def validate_pyon(CFG):
     pass
 
-g_launch_types = {"supd" : validate_supd, "pyon": validate_pyon}
+def validate_fork(CFG):
+    pass
+
+g_launch_types = {"supd" : validate_supd, "pyon": validate_pyon, "fork" : validate_fork}
 
 def validate_config(CFG):
 
@@ -28,7 +35,6 @@ def validate_config(CFG):
 
         # verify the pd args
         x = CFG.pd.name
-        x = CFG.pd.topic
 
         # verify the launch type
         x = CFG.eeagent.launch_types

@@ -1,3 +1,4 @@
+import logging
 from dashi import DashiConnection
 from datetime import datetime
 import threading
@@ -14,11 +15,12 @@ def eeagent_lock(func):
 class EEAgentMessageHandler(object):
 
     def __init__(self, CFG, factory_map, log):
-        self.pd_name = CFG.pd.topic
+        self.pd_name = CFG.pd.name
+        self.ee_name = CFG.eeagent.name
         self.exchange = CFG.server.amqp.exchange
         self._log = log
         self._lock = threading.RLock()
-        self.dashi = dashi_connect(self.pd_name, CFG)
+        self.dashi = dashi_connect(self.ee_name, CFG)
         self._factory_map = factory_map
 
         self.dashi.handle(self.launch_process, "launch_process")
@@ -39,8 +41,11 @@ class EEAgentMessageHandler(object):
         if run_type not in self._factory_map:
             raise EEAgentParameterException("Unknown run type %s" % (run_type))
 
-        factory = self._factory_map[run_type]
-        factory.run(self._make_id(u_pid, round), parameters)
+        try:
+            factory = self._factory_map[run_type]
+            factory.run(self._make_id(u_pid, round), parameters)
+        except Exception, ex:
+            pass
 
     def _find_proc(self, u_pid, round):
         id = self._make_id(u_pid, round)
@@ -56,7 +61,7 @@ class EEAgentMessageHandler(object):
         for (k, v) in self._factory_map.iteritems():
             processes = v.get_all()
             if processes:
-                ps.append(processes)
+                ps = ps + processes.values()
         return ps
 
     @eeagent_lock
@@ -68,14 +73,17 @@ class EEAgentMessageHandler(object):
 
     @eeagent_lock
     def beat_it(self):
-        d = self._get_beat_header()
-        processes = []
-        for p in self._get_all_procs():
-            t = self._get_process_info(p)
-            processes.append(t)
-        d['processes'] = processes
+        try:
+            d = self._get_beat_header()
+            processes = []
+            for p in self._get_all_procs():
+                t = self._get_process_info(p)
+                processes.append(t)
+            d['processes'] = processes
 
-        self.dashi.fire(self.pd_name, "heartbeat", message=d)
+            self.dashi.fire(self.pd_name, "heartbeat", message=d)
+        except Exception, ex:
+            self._log(logging.ERROR, "Heartbeat error %s" %  (str(ex)))
 
     @eeagent_lock
     def get_error_info(self, u_pid, round):

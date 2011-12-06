@@ -17,11 +17,11 @@ eeagent:
 #        pyon:
 #            directory: /tmp
         supd:
-            directory: /tmp
+            directory: /tmp/SupD
+            supdexe: /home/bresnaha/pycharmVE/bin/supervisord
 
 pd:
     name: PDHost1
-    topic: PDHost1Topic
 
 loggers:
   eeagent:

@@ -133,9 +133,14 @@ def main(args=sys.argv[1:]):
     signal.signal(signal.SIGQUIT, death_handler)
 
     for t in thread_list:
-        t.start()
+        if t != mess_thread:
+            t.start()
+
+    mess_thread.run()
+
     for t in thread_list:
-        t.join()
+        if t != mess_thread:
+            t.join()
 
     rc = 0
     for t in thread_list:

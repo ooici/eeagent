@@ -1,4 +1,5 @@
 import dashi.bootstrap as bootstrap
+import logging
 import socket
 import sys
 from threading import Thread
@@ -6,7 +7,6 @@ from dashi import DashiConnection
 import threading
 import signal
 from dashi.bootstrap import dashi_connect
-import os
 import uuid
 from eeagent.types import EEAgentLaunchType
 
@@ -29,11 +29,13 @@ class EEAgentClient(Thread):
     def __init__(self, console, CFG, log):
         Thread.__init__(self)
 
+        self.CFG = CFG
+        self.ee_name = CFG.eeagent.name
         self.pd_name = CFG.pd.name
-        self.exchange = CFG.ampq.exchange
+        self.exchange = CFG.server.amqp.exchange
         self._log = log
         self._lock = threading.RLock()
-        self.dashi = dashi_connect(self.pd_topic, CFG)
+        self.dashi = dashi_connect(self.pd_name, CFG)
         self.done = False
         self.console = console
         self.dashi.handle(self.heartbeat, "heartbeat")
@@ -42,12 +44,11 @@ class EEAgentClient(Thread):
         self.console.write(str(message))
 
     def launch(self, argv):
-        self.dashi.fire()
-        upid = uuid.uuid4[0]
+        upid = str(uuid.uuid4()).split("-")[0]
         params = {}
         params['exec'] = argv[0]
         params['argv'] = argv[1:]
-        self.dashi.fire(self.CFG.ee_name, "launch_process", u_pid=upid, round=0, run_type=EEAgentLaunchType.fork, parameters=params)
+        self.dashi.fire(self.ee_name, "launch_process", u_pid=upid, round=0, run_type=EEAgentLaunchType.supd, parameters=params)
 
     def run(self):
         while not self.done:
@@ -62,21 +63,22 @@ class EEAgentClient(Thread):
 def launch(talker, line_a):
     talker.launch(line_a)
 
+g_command_table = {}
+g_command_table['launch'] = launch
 
 def main(args=sys.argv[1:]):
     global thread_list
 
     # get config
     config_files = []
-    c = os.path.join(determine_path(), "config", "eeagent.yml")
-    if c:
-        config_files.append(c)
+    config_files.append(args[0])
     CFG = bootstrap.configure(config_files=config_files, argv=args)
-    log = bootstrap.get_logger("eeagent", CFG)
+    #log = bootstrap.get_logger("eeagent", CFG)
+    log = logging
 
-    signal.signal(signal.SIGTERM, death_handler)
-    signal.signal(signal.SIGINT, death_handler)
-    signal.signal(signal.SIGQUIT, death_handler)
+ #   signal.signal(signal.SIGTERM, death_handler)
+#    signal.signal(signal.SIGINT, death_handler)
+  #  signal.signal(signal.SIGQUIT, death_handler)
 
     console = TalkConsole()
     talker = EEAgentClient(console, CFG, log)
@@ -91,8 +93,11 @@ def main(args=sys.argv[1:]):
         else:
             line_a = line.split()
             cmd = line_a[0].strip()
-            func = command_table[cmd]
-            func(talker, line_a[1:])
+            try:
+                func = g_command_table[cmd]
+                func(talker, line_a[1:])
+            except Exception, ex:
+                console.write(str(ex))
         
 if __name__ == '__main__':
     rc = main(sys.argv[1:])
