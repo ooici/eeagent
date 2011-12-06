@@ -7,7 +7,7 @@ from eeagent.eeagent_exceptions import EEAgentParameterException
 def eeagent_lock(func):
     def call(self, *args,**kwargs):
         with self._lock:
-            return func(*args,**kwargs)
+            return func(self, *args,**kwargs)
     return call
 
 

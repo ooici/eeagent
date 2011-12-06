@@ -13,15 +13,15 @@ eeagent:
     heartbeat: 30
     poll_interval: 2
 
+    launch_types:
+#        pyon:
+#            directory: /tmp
+        supd:
+            directory: /tmp
+
 pd:
     name: PDHost1
     topic: PDHost1Topic
-
-launch_types:
-    pyon:
-        directory: /tmp
-    supd:
-        directory: /tmp
 
 loggers:
   eeagent:

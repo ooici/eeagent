@@ -38,7 +38,7 @@ class SupDExe(object):
 def get_exe_factory(name, CFG):
 
     if name == "supd":
-        factory = SupDExe(directory=CFG.launch_types.supd.directory, name=CFG.eeagent.name)
+        factory = SupDExe(directory=CFG.eeagent.launch_types.supd.directory, name=CFG.eeagent.name)
     elif name == "pyon":
         factory = PyonExe()
     else:
