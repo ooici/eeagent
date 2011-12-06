@@ -54,7 +54,7 @@ class ExecutorThread(Thread):
                 time.sleep(self._poll_interval)
             except Exception, ex:
                 self._log.log(logging.ERROR, "An exception occurred polling executables")
-                self.end()
+                #self.end()
                 self._res = ex
 
     def end(self):
