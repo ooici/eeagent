@@ -6,6 +6,8 @@ def validate_supd(CFG):
     x = CFG.eeagent.launch_types.supd.directory
     if not os.path.exists(CFG.eeagent.launch_types.supd.directory):
         os.mkdir(CFG.eeagent.launch_types.supd.directory)
+    x = CFG.eeagent.launch_types.supd.slots
+
 
 def validate_pyon(CFG):
     pass

@@ -3,7 +3,9 @@ from dashi import DashiConnection
 from datetime import datetime
 import threading
 from dashi.bootstrap import dashi_connect
+from pidantic.pidantic_exceptions import PIDanticStateException
 from eeagent.eeagent_exceptions import EEAgentParameterException
+from eeagent.execute import PidWrapper
 
 def eeagent_lock(func):
     def call(self, *args,**kwargs):
@@ -73,7 +75,10 @@ class EEAgentMessageHandler(object):
         process = self._find_proc(u_pid, round)
         if not process:
             return
-        process.terminate()
+        try:
+            process.terminate()
+        except PIDanticStateException, pse:
+            self._log.log(logging.WARN, "Attempt to terminate a process in the state %s" % (str(process.get_state())))
 
     @eeagent_lock
     def beat_it(self):
@@ -104,18 +109,18 @@ class EEAgentMessageHandler(object):
 
     @eeagent_lock
     def cleanup(self, u_pid, round):
-        allowed_states = ["STATE_EXITED"]
+        allowed_states = [PidWrapper.REQUESTING, PidWrapper.TERMINATED, PidWrapper.EXITED, PidWrapper.REJECTED]
         process = self._find_proc(u_pid, round)
         if not process:
             return
         state = process.get_state()
         if state not in allowed_states:
-            return
+            self._log.log(logging.WARN, "Attempt to cleanup a process in the state %s" % (str(process.get_state())))
 
         try:
             process.clean_up()
         except Exception, ex:
-            pass
+            self._log.log(logging.WARN, "AFailed to cleanup: %s" % (str(ex)))
 
     def _get_beat_header(self):
         d = {}

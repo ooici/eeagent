@@ -10,7 +10,6 @@ from eeagent.execute import get_exe_factory
 from eeagent.message import EEAgentMessageHandler
 
 
-
 class HeartbeatThread(Thread):
 
     def __init__(self, log=logging, mess=None, interval=30):

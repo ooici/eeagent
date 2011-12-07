@@ -10,7 +10,7 @@ server:
 
 eeagent:
     name: eeagent
-    heartbeat: 10
+    heartbeat: 30
     poll_interval: 2
 
     launch_types:
@@ -19,6 +19,7 @@ eeagent:
         supd:
             directory: /tmp/SupD
             supdexe: /home/bresnaha/pycharmVE/bin/supervisord
+            slots: 8
 
 pd:
     name: PDHost1
