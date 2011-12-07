@@ -1,4 +1,6 @@
 server:
+  memory:
+    name: hats
   amqp:
     host: localhost
     port: 5672

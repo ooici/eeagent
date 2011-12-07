@@ -47,11 +47,8 @@ class EEAgentMessageHandler(object):
         if run_type not in self._factory_map:
             raise EEAgentParameterException("Unknown run type %s" % (run_type))
 
-        try:
-            factory = self._factory_map[run_type]
-            factory.run(self._make_id(u_pid, round), parameters)
-        except Exception, ex:
-            pass
+        factory = self._factory_map[run_type]
+        factory.run(self._make_id(u_pid, round), parameters)
 
     def _find_proc(self, u_pid, round):
         id = self._make_id(u_pid, round)
