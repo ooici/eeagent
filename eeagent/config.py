@@ -2,6 +2,13 @@ import os
 from eeagent.eeagent_exceptions import EEAgentParameterException
 import os
 
+def _set_param_or_default(kwvals, key, default=None):
+    try:
+        rc = kwvals[key]
+    except:
+        rc = default
+    return rc
+
 def validate_supd(CFG):
     x = CFG.eeagent.launch_types.supd.directory
     if not os.path.exists(CFG.eeagent.launch_types.supd.directory):

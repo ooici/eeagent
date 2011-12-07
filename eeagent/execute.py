@@ -1,5 +1,6 @@
 from pidantic.fork import ForkPidanticFactory
 from pidantic.supd.pidsupd import SupDPidanticFactory
+from eeagent.config import _set_param_or_default
 from eeagent.eeagent_exceptions import EEAgentParameterException
 
 
@@ -89,7 +90,7 @@ class SupDExe(object):
     def __init__(self, **kwargs):
         self._working_dir = kwargs['directory']
         self._eename = kwargs['name']
-        supdexe = kwargs['supdexe']
+        supdexe = _set_param_or_default(kwargs, 'supdexe', None)
         self._slots = kwargs['slots']
         self._factory = SupDPidanticFactory(directory=self._working_dir, name=self._eename, supdexe=supdexe)
 

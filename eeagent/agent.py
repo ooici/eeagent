@@ -5,9 +5,11 @@ import dashi.bootstrap as bootstrap
 from threading import Thread
 import time
 import signal
+import os
 from eeagent.config import validate_config
 from eeagent.execute import get_exe_factory
 from eeagent.message import EEAgentMessageHandler
+from eeagent.types import determine_path
 
 
 class HeartbeatThread(Thread):
@@ -99,12 +101,12 @@ def main(args=sys.argv[1:]):
 
     # get config
     config_files = []
-    #c = os.path.join(determine_path(), "config", "eeagent.yml")
-    #if c:
-    #    config_files.append(c)
-    #config_files.append(os.path.join(os.getcwd(), "config", "eeagent.yml"))
-    #config_files.append(os.path.join(os.getcwd(), "eeagent.yml"))
-    config_files.append(args[0])
+    c = os.path.join(determine_path(), "config", "default.yml")
+    if os.path.exists(c):
+        config_files.append(c)
+    else:
+        raise Exception("default configuration file not found")
+
     CFG = bootstrap.configure(config_files=config_files, argv=args)
     validate_config(CFG)
     #log = bootstrap.get_logger("eeagent", CFG)
