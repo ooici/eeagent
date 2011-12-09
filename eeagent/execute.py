@@ -20,6 +20,7 @@ class PidWrapper(object):
     TERMINATED = (700, "TERMINATED")
 
     state_map = {}
+    state_map["STATE_INITIAL"] = REQUESTING
     state_map["STATE_PENDING"] = REQUESTING
     state_map["STATE_STARTING"] = REQUESTING
     state_map["STATE_RUNNING"] = RUNNING
