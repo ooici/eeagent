@@ -9,7 +9,7 @@ import threading
 from dashi.bootstrap import dashi_connect
 import uuid
 from eeagent.types import EEAgentLaunchType
-from eeagent.util import determine_path
+from eeagent.util import determine_path, get_logging, build_cfg
 
 class TalkConsole(object):
 
@@ -91,42 +91,52 @@ g_command_table['cleanup'] = proc_clean
 g_command_table['dump'] = proc_dump
 
 
+class EEAgentClientMain(object):
+
+    def __init__(self, args):
+        self._args = args
+
+    def start(self):
+        self.CFG = build_cfg(self._args)
+        self.log = get_logging(self.CFG)
+        self._done = False
+        self.console = TalkConsole()
+        self.talker = EEAgentClient(self.console.write, self.CFG, self.log)
+
+    def wait(self):
+        self.talker.start()
+        self._done = False
+        while not self._done:
+            line = self.console.input()
+            line = line.strip()
+            if not line:
+                continue
+            if line == "quit":
+                self._done = True
+                self.talker.end()
+            else:
+                line_a = line.split()
+                cmd = line_a[0].strip()
+                try:
+                    func = g_command_table[cmd]
+                    func(self.talker, line_a[1:])
+                except Exception, ex:
+                    self.console.write(str(ex))
+        return 0
+
+    def death_handler(self, signum, frame):
+        self.end()
+
+    def end(self):
+        self._done = True
+
+
 def main(args=sys.argv):
-    global thread_list
 
-    # get config
-    config_files = []
-    c = os.path.join(determine_path(), "config", "default.yml")
-    if os.path.exists(c):
-        config_files.append(c)
-    else:
-        raise Exception("default configuration file not found")
-    CFG = bootstrap.configure(config_files=config_files)
-    print CFG
-    #log = bootstrap.get_logger("eeagent", CFG)
-    log = logging
+    client = EEAgentClientMain(args)
+    client.start()
+    return client.wait()
 
-    console = TalkConsole()
-    talker = EEAgentClient(console.write, CFG, log)
-    talker.start()
-    done = False
-    while not done:
-        line = console.input()
-        line = line.strip()
-        if not line:
-            continue
-        if line == "quit":
-            done = True
-            talker.end()
-        else:
-            line_a = line.split()
-            cmd = line_a[0].strip()
-            try:
-                func = g_command_table[cmd]
-                func(talker, line_a[1:])
-            except Exception, ex:
-                console.write(str(ex))
-        
 if __name__ == '__main__':
     rc = main()
     sys.exit(rc)
