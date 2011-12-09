@@ -1,14 +1,15 @@
+import os
 import dashi.bootstrap as bootstrap
 import logging
 import socket
 import sys
 from threading import Thread
-from dashi import DashiConnection
+import simplejson as json
 import threading
-import signal
 from dashi.bootstrap import dashi_connect
 import uuid
 from eeagent.types import EEAgentLaunchType
+from eeagent.util import determine_path
 
 class TalkConsole(object):
 
@@ -26,41 +27,38 @@ class TalkConsole(object):
 
 class EEAgentClient(Thread):
 
-    def __init__(self, console, CFG, log):
+    def __init__(self, incoming, CFG, log=logging):
         Thread.__init__(self)
 
         self.CFG = CFG
         self.ee_name = CFG.eeagent.name
         self.pd_name = CFG.pd.name
-        self.exchange = CFG.server.amqp.exchange
+        self.exchange = CFG.dashi.exchange
         self._log = log
-        self._lock = threading.RLock()
         self.dashi = dashi_connect(self.pd_name, CFG)
         self.done = False
-        self.console = console
+        self.incoming = incoming
         self.dashi.handle(self.heartbeat, "heartbeat")
 
     def heartbeat(self, message):
-        self.console.write(str(message))
+        self.incoming(json.dumps(message))
 
-    def launch(self, argv):
+    def launch(self, argv, round=0):
         upid = str(uuid.uuid4()).split("-")[0]
         params = {}
         params['exec'] = argv[0]
         params['argv'] = argv[1:]
-        self.dashi.fire(self.ee_name, "launch_process", u_pid=upid, round=0, run_type=EEAgentLaunchType.supd, parameters=params)
+        self.dashi.fire(self.ee_name, "launch_process", u_pid=upid, round=round, run_type=EEAgentLaunchType.supd, parameters=params)
+        return (upid, round)
 
-    def proc_term(self, argv):
-        upid = argv[0]
-        round = int(argv[1])
+    def proc_term(self, upid, round):
         self.dashi.fire(self.ee_name, "terminate_process", u_pid=upid, round=round)
 
     def dump(self):
+        print "sending dump"
         self.dashi.fire(self.ee_name, "dump_state")
 
-    def proc_clean(self, argv):
-        upid = argv[0]
-        round = int(argv[1])
+    def proc_clean(self, upid, round):
         self.dashi.fire(self.ee_name, "cleanup", u_pid=upid, round=round)
 
     def run(self):
@@ -77,10 +75,10 @@ def launch(talker, line_a):
     talker.launch(line_a)
 
 def proc_term(talker, line_a):
-    talker.proc_term(line_a)
+    talker.proc_term(line_a[0], int(line_a[1]))
 
 def proc_clean(talker, line_a):
-    talker.proc_clean(line_a)
+    talker.proc_clean(line_a[0], int(line_a[1]))
 
 def proc_dump(talker, line_a):
     talker.dump()
@@ -93,27 +91,30 @@ g_command_table['cleanup'] = proc_clean
 g_command_table['dump'] = proc_dump
 
 
-def main(args=sys.argv[1:]):
+def main(args=sys.argv):
     global thread_list
 
     # get config
     config_files = []
-    config_files.append(args[0])
-    CFG = bootstrap.configure(config_files=config_files, argv=args)
+    c = os.path.join(determine_path(), "config", "default.yml")
+    if os.path.exists(c):
+        config_files.append(c)
+    else:
+        raise Exception("default configuration file not found")
+    CFG = bootstrap.configure(config_files=config_files)
+    print CFG
     #log = bootstrap.get_logger("eeagent", CFG)
     log = logging
 
- #   signal.signal(signal.SIGTERM, death_handler)
-#    signal.signal(signal.SIGINT, death_handler)
-  #  signal.signal(signal.SIGQUIT, death_handler)
-
     console = TalkConsole()
-    talker = EEAgentClient(console, CFG, log)
+    talker = EEAgentClient(console.write, CFG, log)
     talker.start()
     done = False
     while not done:
         line = console.input()
-
+        line = line.strip()
+        if not line:
+            continue
         if line == "quit":
             done = True
             talker.end()
@@ -127,6 +128,6 @@ def main(args=sys.argv[1:]):
                 console.write(str(ex))
         
 if __name__ == '__main__':
-    rc = main(sys.argv[1:])
+    rc = main()
     sys.exit(rc)
 

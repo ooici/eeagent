@@ -73,7 +73,7 @@ class PidWrapper(object):
         if not self._pidantic:
             return
         self._pidantic.cleanup()
-        self._exe.remove_proc(self)
+        self._exe._remove_proc(self._name)
         
 class ForkExe(object):
 
@@ -93,52 +93,51 @@ class SupDExe(object):
         supdexe = _set_param_or_default(kwargs, 'supdexe', None)
         self._slots = kwargs['slots']
         self._factory = SupDPidanticFactory(directory=self._working_dir, name=self._eename, supdexe=supdexe)
-
-        sis = self._factory.stored_instances()
-        self._known_pids = {}
-        for s in sis:
-            name = s.get_name()
-            pw = PidWrapper(self, name, s)
-            self._known_pids[name] = pw
+        pidantic_instances = self._factory.reload_instances()
+        self._known_pws = {}
+        for name in pidantic_instances:
+            pidantic = pidantic_instances[name]
+            pw = PidWrapper(self, name)
+            pw.set_pidantic(pidantic)
+            self._known_pws[name] = pw
 
     def run(self, name, parameters):
         pw = PidWrapper(self, name)
+        self._known_pws[name] = pw
         pid = None
-        try:
-            command = parameters['exec'] + " " + ' '.join(parameters['argv'])
-            self._known_pids[name] = pw
-            pid = self._factory.get_pidantic(command=command, process_name=name, directory=self._working_dir)
-            pw.set_pidantic(pid)
-            if len(self._get_running()) <= self._slots:
-                pid.start()
-            else:
-                pid.cancel_request()
-            return pw
-        except Exception, ex:
-            pw.set_error_message(str(ex))
-            if pid:
-                pid.cancel_request()
-
+        command = parameters['exec'] + " " + ' '.join(parameters['argv'])
+        pid = self._factory.get_pidantic(command=command, process_name=name, directory=self._working_dir)
+        pw.set_pidantic(pid)
+        if len(self._get_running()) <= self._slots:
+            pid.start()
+        else:
+            pid.cancel_request()
         return pw
 
-    def remove_proc(self, proc):
-        self._known_pids.pop(proc.get_name())
+    def get_known_pws(self):
+        return self._known_pws
+        
+    def _remove_proc(self, proc_name):
+        del self._known_pws[proc_name]
 
     def lookup_id(self, name):
-        if name not in self._known_pids:
+        if name not in self._known_pws:
             return None
-        return self._known_pids[name]
+        return self._known_pws[name]
 
     def get_all(self):
-        return self._known_pids
-
+        return self._known_pws
+        
     def _get_running(self):
         running_states = [PidWrapper.RUNNING, PidWrapper.TERMINATING, PidWrapper.REQUESTING]
-        running = [i for i in self._known_pids.values() if i.get_state() in running_states]
+        running = [i for i in self.get_all().values() if i.get_state() in running_states]
         return running
 
     def poll(self):
         return self._factory.poll()
+
+    def terminate(self):
+        self._factory.terminate()
 
 def get_exe_factory(name, CFG):
 

@@ -3,29 +3,32 @@ import socket
 import sys
 import dashi.bootstrap as bootstrap
 from threading import Thread
-import time
 import signal
-import os
-from eeagent.config import validate_config
-from eeagent.execute import get_exe_factory
+import time
+from eeagent.beatit import beat_it
 from eeagent.message import EEAgentMessageHandler
-from eeagent.types import determine_path
-
+from eeagent.util import get_process_managers, build_cfg, get_logging
 
 class HeartbeatThread(Thread):
 
-    def __init__(self, log=logging, mess=None, interval=30):
+    def __init__(self, CFG, process_managers_map, log=logging):
         Thread.__init__(self)
-        self._done = False
+
         self._log = log
-        self._mess = mess
-        self._interval = interval
+        self._log.log(logging.DEBUG, "Starting the heartbeat thread")
+        self._dashi = bootstrap.dashi_connect(CFG.eeagent.name, CFG)
+        self._CFG = CFG
+        self._res = None
+        self._interval = int(CFG.eeagent.heartbeat)
+        self._res = None
+        self._done = False
+        self._process_managers_map = process_managers_map
 
     def run(self):
         while not self._done:
             try:
                 time.sleep(self._interval)
-                self._mess.beat_it()
+                beat_it(self._dashi, self._CFG, self._process_managers_map.values())
             except Exception, ex:
                 self._log.log(logging.ERROR, "An exception occurred during the heartbeat")
                 self.end()
@@ -38,121 +41,84 @@ class HeartbeatThread(Thread):
         return self._res
 
 
-class ExecutorThread(Thread):
+class EEAgentMessagingThread(Thread):
 
-    def __init__(self, log=logging, exe_map=None, poll_interval=2):
+    def __init__(self, CFG, process_managers_map, log=logging):
         Thread.__init__(self)
         self._done = False
-        self._log = log
-        self._exe_map = exe_map
-        self._poll_interval = poll_interval
+        # get config
+        self.CFG = CFG
+        self.log = log
+        self.log.log(logging.DEBUG, "Starting the messenging thread")
+        self._res = None
+        self._interval = 2 
+        self.messenger = EEAgentMessageHandler(self.CFG, process_managers_map, self.log)
+        self.heartbeater = HeartbeatThread(self.CFG, process_managers_map, log=self.log)
+        self.heartbeater.start()
 
     def run(self):
         while not self._done:
             try:
-                for e in self._exe_map:
-                    self._exe_map[e].poll()
-                time.sleep(self._poll_interval)
-            except Exception, ex:
-                self._log.log(logging.ERROR, "An exception occurred polling executables")
-                #self.end()
-                self._res = ex
-
-    def end(self):
-        self._done = True
-
-    def get_results(self):
-        return self._res
-
-class MessengerThread(Thread):
-
-    def __init__(self, log=logging, mess=None, to=2):
-        Thread.__init__(self)
-        self._done = False
-        self._log = log
-        self._mess = mess
-        self._to = to
-
-    def run(self):
-        while not self._done:
-            try:
-                self._mess.poll(timeout=self._to)
+                self.messenger.poll(timeout=self._interval)
             except socket.timeout, ex:
-                self._log.log(logging.DEBUG, "Dashi timeout wakeup %s" % str(ex))
+                self.log.log(logging.DEBUG, "Dashi timeout wakeup %s" % str(ex))
             except Exception, res_ex:
                 self._res = res_ex
                 self.end()
+                self.log.log(logging.ERROR, "EEAgentMessagingThread error %s" % str(res_ex))
+        self.heartbeater.join()
 
     def end(self):
+        self.heartbeater.end()
         self._done = True
 
-    def get_results(self):
+    def get_result(self):
+        res = self.heartbeater.get_results()
+        if res:
+            return res
+
         return self._res
 
-thread_list = []
+class EEAgentMain(object):
 
-def death_handler(signum, frame):
-    global thread_list
-    for t in thread_list:
-        t.end()
+    def __init__(self, args):
 
-def main(args=sys.argv[1:]):
-    global thread_list
+        self.CFG = build_cfg(args)
+        self.log = get_logging(self.CFG)
 
-    # get config
-    config_files = []
-    c = os.path.join(determine_path(), "config", "default.yml")
-    if os.path.exists(c):
-        config_files.append(c)
-    else:
-        raise Exception("default configuration file not found")
+        # There can be only 1 process manager per eeagent (per supd, per ion)
+        self._process_managers_map = get_process_managers(self.CFG)
 
-    CFG = bootstrap.configure(config_files=config_files, argv=args)
-    validate_config(CFG)
-    #log = bootstrap.get_logger("eeagent", CFG)
-    log = logging
+        self.messaging = EEAgentMessagingThread(self.CFG, self._process_managers_map, log=self.log)
 
-    # create pidantic objects
-    factory_map = {}
-    for lt in CFG.eeagent.launch_types:
-        factory = get_exe_factory(lt, CFG)
-        factory_map[lt] = factory
+        signal.signal(signal.SIGTERM, self.death_handler)
+        signal.signal(signal.SIGINT, self.death_handler)
+        signal.signal(signal.SIGQUIT, self.death_handler)
 
-    thread_list = []
-    exe_thread = ExecutorThread(log=log, exe_map=factory_map, poll_interval=CFG.eeagent.poll_interval)
-    thread_list.append(exe_thread)
-    # create message handler
-    messenger = EEAgentMessageHandler(CFG, factory_map, log)
-    mess_thread = MessengerThread(log=log, mess=messenger)
-    thread_list.append(mess_thread)
+        self.messaging.start()
 
-    heart_thread = HeartbeatThread(log=log, mess=messenger, interval=CFG.eeagent.heartbeat)
-    thread_list.append(heart_thread)
-    
-    signal.signal(signal.SIGTERM, death_handler)
-    signal.signal(signal.SIGINT, death_handler)
-    signal.signal(signal.SIGQUIT, death_handler)
+    def get_cfg(self):
+        return self.CFG
 
-    for t in thread_list:
-        if t != mess_thread:
-            t.start()
+    def death_handler(self, signum, frame):
+        self.messaging.end()
+        for m in self._process_managers_map.values():
+            m.terminate()
 
-    mess_thread.run()
+    def wait(self):
+        self.messaging.join()
 
-    for t in thread_list:
-        if t != mess_thread:
-            t.join()
-
-    rc = 0
-    for t in thread_list:
-        res = t.get_results()
+        res = self.messaging.get_result()
         if res:
-            log.logging(logging.ERROR, "An error occured in processing %s" % (str(res)))
-            rc = 1
+            raise res
 
-    return rc
+        return 0
 
+
+def main(args=sys.argv):
+    eeagent = EEAgentMain(args)
+    return eeagent.wait()
 
 if __name__ == '__main__':
-    rc = main(sys.argv[1:])
+    rc = main(sys.argv)
     sys.exit(rc)

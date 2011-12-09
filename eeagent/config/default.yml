@@ -5,8 +5,10 @@ server:
     username: guest
     password: guest
     vhost: /
-    heartbeat: 15
-    exchange: eeagent
+    heartbeat: 10
+
+dashi:
+    exchange: eeagentEX
 
 eeagent:
     name: eeagent
