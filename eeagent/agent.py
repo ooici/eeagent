@@ -52,10 +52,6 @@ class EEAgentMain(object):
         self.messenger = EEAgentMessageHandler(self.CFG, self._process_managers_map, self.log)
         self.heartbeater = HeartBeater(self.CFG, self._process_managers_map, log=self.log)
 
-        signal.signal(signal.SIGTERM, self.death_handler)
-        signal.signal(signal.SIGINT, self.death_handler)
-        signal.signal(signal.SIGQUIT, self.death_handler)
-
         self._res = None
 
     def get_cfg(self):
@@ -67,10 +63,11 @@ class EEAgentMain(object):
     def wait(self):
         while not self._done:
             try:
-                self.messenger.poll(timeout=self._interval)
+                try:
+                    self.messenger.poll(timeout=self._interval)
+                except socket.timeout, ex:
+                    self.log.log(logging.DEBUG, "Dashi timeout wakeup %s" % str(ex))
                 self.heartbeater.poll()
-            except socket.timeout, ex:
-                self.log.log(logging.DEBUG, "Dashi timeout wakeup %s" % str(ex))
             except Exception, res_ex:
                 self._res = res_ex
                 self.log.log(logging.ERROR, "EEAgentMessagingThread error %s" % str(res_ex))
@@ -83,9 +80,10 @@ class EEAgentMain(object):
     def end(self):
         self._done = True
 
-def MainRunnerThread(object):
+class MainRunnerThread(Thread):
 
     def __init__(self, main):
+        Thread.__init__(self)
         self._main = main
 
     def run(self):
@@ -97,6 +95,9 @@ def MainRunnerThread(object):
 
 def main(args=sys.argv):
     eeagent = EEAgentMain(args)
+    signal.signal(signal.SIGTERM, eeagent.death_handler)
+    signal.signal(signal.SIGINT, eeagent.death_handler)
+    signal.signal(signal.SIGQUIT, eeagent.death_handler)
     eeagent.start()
     return eeagent.wait()
 

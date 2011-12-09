@@ -25,18 +25,15 @@ class TalkConsole(object):
         line = raw_input(self._prompt)
         return line.strip()
 
-class EEAgentClient(Thread):
+class EEAgentClient(object):
 
     def __init__(self, incoming, CFG, log=logging):
-        Thread.__init__(self)
-
         self.CFG = CFG
         self.ee_name = CFG.eeagent.name
         self.pd_name = CFG.pd.name
         self.exchange = CFG.dashi.exchange
         self._log = log
         self.dashi = dashi_connect(self.pd_name, CFG)
-        self.done = False
         self.incoming = incoming
         self.dashi.handle(self.heartbeat, "heartbeat")
 
@@ -51,34 +48,29 @@ class EEAgentClient(Thread):
         self.dashi.fire(self.ee_name, "launch_process", u_pid=upid, round=round, run_type=EEAgentLaunchType.supd, parameters=params)
         return (upid, round)
 
-    def proc_term(self, upid, round):
+    def terminate(self, upid, round):
         self.dashi.fire(self.ee_name, "terminate_process", u_pid=upid, round=round)
 
     def dump(self):
-        print "sending dump"
         self.dashi.fire(self.ee_name, "dump_state")
 
-    def proc_clean(self, upid, round):
+    def cleanup(self, upid, round):
         self.dashi.fire(self.ee_name, "cleanup", u_pid=upid, round=round)
 
-    def run(self):
-        while not self.done:
-            try:
-                self.dashi.consume(timeout=2)
-            except socket.timeout, ex:
-                pass
-
-    def end(self):
-        self.done = True
+    def poll(self, timeout=2):
+        try:
+            self.dashi.consume(timeout=2)
+        except socket.timeout, ex:
+            pass 
 
 def launch(talker, line_a):
     talker.launch(line_a)
 
 def proc_term(talker, line_a):
-    talker.proc_term(line_a[0], int(line_a[1]))
+    talker.terminate(line_a[0], int(line_a[1]))
 
 def proc_clean(talker, line_a):
-    talker.proc_clean(line_a[0], int(line_a[1]))
+    talker.cleanup(line_a[0], int(line_a[1]))
 
 def proc_dump(talker, line_a):
     talker.dump()
@@ -90,6 +82,19 @@ g_command_table['terminate'] = proc_term
 g_command_table['cleanup'] = proc_clean
 g_command_table['dump'] = proc_dump
 
+class EEAgentCLIMessageReaderThread(Thread):
+
+    def __init__(self, client):
+        Thread.__init__(self)
+        self.done = False
+        self.client = client
+
+    def end(self):
+        self.done = True
+
+    def run(self):
+        while not self.done:
+            self.client.poll(timeout=2)
 
 class EEAgentClientMain(object):
 
@@ -102,9 +107,10 @@ class EEAgentClientMain(object):
         self._done = False
         self.console = TalkConsole()
         self.talker = EEAgentClient(self.console.write, self.CFG, self.log)
+        self.client_thread = EEAgentCLIMessageReaderThread(self.talker)
 
     def wait(self):
-        self.talker.start()
+        self.client_thread.start()
         self._done = False
         while not self._done:
             line = self.console.input()
@@ -113,7 +119,6 @@ class EEAgentClientMain(object):
                 continue
             if line == "quit":
                 self._done = True
-                self.talker.end()
             else:
                 line_a = line.split()
                 cmd = line_a[0].strip()
@@ -122,6 +127,7 @@ class EEAgentClientMain(object):
                     func(self.talker, line_a[1:])
                 except Exception, ex:
                     self.console.write(str(ex))
+        self.client_thread.end()
         return 0
 
     def death_handler(self, signum, frame):
