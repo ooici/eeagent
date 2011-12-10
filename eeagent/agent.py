@@ -48,7 +48,7 @@ class EEAgentMain(object):
         # There can be only 1 process manager per eeagent (per supd, per ion)
         self._process_managers_map = get_process_managers(self.CFG)
 
-        self._interval = 2
+        self._interval = 1
         self.messenger = EEAgentMessageHandler(self.CFG, self._process_managers_map, self.log)
         self.heartbeater = HeartBeater(self.CFG, self._process_managers_map, log=self.log)
 

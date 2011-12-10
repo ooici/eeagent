@@ -1,11 +1,9 @@
-import os
 import dashi.bootstrap as bootstrap
 import logging
 import socket
 import sys
 from threading import Thread
 import simplejson as json
-import threading
 from dashi.bootstrap import dashi_connect
 import uuid
 from eeagent.types import EEAgentLaunchType
@@ -57,9 +55,11 @@ class EEAgentClient(object):
     def cleanup(self, upid, round):
         self.dashi.fire(self.ee_name, "cleanup", u_pid=upid, round=round)
 
-    def poll(self, timeout=2):
+    def poll(self, timeout=None, count=None):
+        if timeout:
+            count = 1
         try:
-            self.dashi.consume(timeout=2)
+            self.dashi.consume(timeout=timeout, count=count)
         except socket.timeout, ex:
             pass 
 

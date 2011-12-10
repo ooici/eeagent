@@ -131,7 +131,8 @@ class SupDExe(object):
         
     def _get_running(self):
         running_states = [PidWrapper.RUNNING, PidWrapper.TERMINATING, PidWrapper.REQUESTING]
-        running = [i for i in self.get_all().values() if i.get_state() in running_states]
+        a = self.get_all().values()
+        running = [i for i in a if i.get_state() in running_states]
         return running
 
     def poll(self):

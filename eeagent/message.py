@@ -90,5 +90,7 @@ class EEAgentMessageHandler(object):
         except Exception, ex:
             self._log.log(logging.WARN, "Failed to cleanup: %s" % (str(ex)))
 
-    def poll(self, timeout=None):
-        return self.dashi.consume(self, timeout=timeout)
+    def poll(self, count=None, timeout=None):
+        if timeout:
+            count = 1
+        return self.dashi.consume(count=count, timeout=timeout)
