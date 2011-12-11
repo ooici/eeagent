@@ -45,37 +45,4 @@ class EEAgentClient(object):
         try:
             self.dashi.consume(timeout=timeout, count=count)
         except socket.timeout, ex:
-            pass 
-
-def launch(talker, line_a):
-    talker.launch(line_a)
-
-def proc_term(talker, line_a):
-    talker.terminate(line_a[0], int(line_a[1]))
-
-def proc_clean(talker, line_a):
-    talker.cleanup(line_a[0], int(line_a[1]))
-
-def proc_dump(talker, line_a):
-    talker.dump()
-
-
-g_command_table = {}
-g_command_table['launch'] = launch
-g_command_table['terminate'] = proc_term
-g_command_table['cleanup'] = proc_clean
-g_command_table['dump'] = proc_dump
-
-class EEAgentCLIMessageReaderThread(Thread):
-
-    def __init__(self, client):
-        Thread.__init__(self)
-        self.done = False
-        self.client = client
-
-    def end(self):
-        self.done = True
-
-    def run(self):
-        while not self.done:
-            self.client.poll(timeout=2)
+            pass

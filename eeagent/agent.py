@@ -94,11 +94,21 @@ class MainRunnerThread(Thread):
     def end(self):
         self._main.end()
 
+eeagent = None
+def death_handler(signum, frame):
+    if not eeagent:
+        return
+    eeagent.end()
+
 def main(args=sys.argv):
+    global eeagent
+    try:
+        signal.signal(signal.SIGTERM, death_handler)
+        signal.signal(signal.SIGINT, death_handler)
+        signal.signal(signal.SIGQUIT, death_handler)
+    except Exception, ex:
+        pass
     eeagent = EEAgentMain(args)
-    signal.signal(signal.SIGTERM, eeagent.death_handler)
-    signal.signal(signal.SIGINT, eeagent.death_handler)
-    signal.signal(signal.SIGQUIT, eeagent.death_handler)
     eeagent.start()
     return eeagent.wait()
 
