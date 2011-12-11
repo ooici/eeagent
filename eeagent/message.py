@@ -55,14 +55,6 @@ class EEAgentMessageHandler(object):
                 break
         return process
 
-    def _get_all_procs(self):
-        ps = []
-        for (k, v) in self._process_managers_map.iteritems():
-            processes = v.get_all()
-            if processes:
-                ps = ps + processes.values()
-        return ps
-
     @eeagent_lock
     def terminate_process(self, u_pid, round):
         process = self._find_proc(u_pid, round)
