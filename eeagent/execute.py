@@ -92,7 +92,7 @@ class SupDExe(object):
         self._working_dir = kwargs['directory']
         self._eename = kwargs['name']
         supdexe = _set_param_or_default(kwargs, 'supdexe', None)
-        self._slots = kwargs['slots']
+        self._slots = int(kwargs['slots'])
         self._factory = SupDPidanticFactory(directory=self._working_dir, name=self._eename, supdexe=supdexe)
         pidantic_instances = self._factory.reload_instances()
         self._known_pws = {}
@@ -109,7 +109,10 @@ class SupDExe(object):
         command = parameters['exec'] + " " + ' '.join(parameters['argv'])
         pid = self._factory.get_pidantic(command=command, process_name=name, directory=self._working_dir)
         pw.set_pidantic(pid)
-        if len(self._get_running()) <= self._slots:
+
+        running_jobs = self._get_running()
+        x = len(running_jobs)
+        if x <= self._slots:
             pid.start()
         else:
             pid.cancel_request()
@@ -132,6 +135,8 @@ class SupDExe(object):
     def _get_running(self):
         running_states = [PidWrapper.RUNNING, PidWrapper.TERMINATING, PidWrapper.REQUESTING]
         a = self.get_all().values()
+        running = [i.get_state() for i in a]
+
         running = [i for i in a if i.get_state() in running_states]
         return running
 
