@@ -1,7 +1,7 @@
 from pidantic.fork import ForkPidanticFactory
 from pidantic.supd.pidsupd import SupDPidanticFactory
-from eeagent.config import _set_param_or_default
 from eeagent.eeagent_exceptions import EEAgentParameterException
+from eeagent.util import _set_param_or_default
 
 
 class PidWrapper(object):
@@ -158,3 +158,12 @@ def get_exe_factory(name, CFG):
         raise EEAgentParameterException("%s is an unknown launch type" % (name))
 
     return factory
+
+
+def get_process_managers(CFG):
+    # create pidantic objects
+    process_managers_map = {}
+    for lt in CFG.eeagent.launch_types:
+        factory = get_exe_factory(lt, CFG)
+        process_managers_map[lt] = factory
+    return process_managers_map

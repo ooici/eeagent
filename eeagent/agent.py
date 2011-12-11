@@ -7,8 +7,9 @@ import signal
 import time
 import datetime
 from eeagent.beatit import beat_it
+from eeagent.execute import get_process_managers
 from eeagent.message import EEAgentMessageHandler
-from eeagent.util import get_process_managers, build_cfg, get_logging
+from eeagent.util import build_cfg, get_logging
 
 class HeartBeater(object):
     def __init__(self, CFG, process_managers_map, log=logging):

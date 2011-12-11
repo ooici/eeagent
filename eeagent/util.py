@@ -2,8 +2,6 @@ import logging
 import socket
 from dashi import bootstrap
 import datetime
-from eeagent.execute import get_exe_factory
-import os
 from eeagent.eeagent_exceptions import EEAgentParameterException
 import os
 
@@ -112,10 +110,3 @@ def get_logging(CFG):
     # for now just return the default
     return logging
 
-def get_process_managers(CFG):
-    # create pidantic objects
-    process_managers_map = {}
-    for lt in CFG.eeagent.launch_types:
-        factory = get_exe_factory(lt, CFG)
-        process_managers_map[lt] = factory
-    return process_managers_map

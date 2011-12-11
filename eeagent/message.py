@@ -1,13 +1,11 @@
 import logging
-from dashi import DashiConnection
-from datetime import datetime
 import threading
 from dashi.bootstrap import dashi_connect
 from pidantic.pidantic_exceptions import PIDanticStateException
 from eeagent.beatit import beat_it
 from eeagent.eeagent_exceptions import EEAgentParameterException
 from eeagent.execute import PidWrapper
-from eeagent.util import get_process_managers, make_id
+from eeagent.util import make_id
 
 def eeagent_lock(func):
     def call(self, *args,**kwargs):
