@@ -21,10 +21,11 @@ setup(name='eeagent',
       url='http://www.nimbusproject.org/',
       packages=find_packages(),
       package_data={'eeagent': ['config/*.yml']},
+      dependency_links=['http://ooici.net/releases'],
       keywords = "OOI Execution Agent",
       long_description="""Some other time""",
       license="Apache2",
-      install_requires = ["dashi", "pidantic"],
+      install_requires = ["dashi", "pidantic", "simplejson"],
       entry_points = {
         'console_scripts': [
             'eeagent = eeagent.agent:main',
