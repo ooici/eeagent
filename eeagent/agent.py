@@ -7,12 +7,12 @@ import signal
 import time
 import datetime
 from eeagent.beatit import beat_it
-from eeagent.execute import get_process_managers
+from eeagent.execute import get_exe_factory
 from eeagent.message import EEAgentMessageHandler
 from eeagent.util import build_cfg, get_logging
 
 class HeartBeater(object):
-    def __init__(self, CFG, process_managers_map, log=logging):
+    def __init__(self, CFG, factory, log=logging):
 
         self._log = log
         self._log.log(logging.DEBUG, "Starting the heartbeat thread")
@@ -22,7 +22,7 @@ class HeartBeater(object):
         self._interval = int(CFG.eeagent.heartbeat)
         self._res = None
         self._done = False
-        self._process_managers_map = process_managers_map
+        self._factory = factory
         self._next_beat(datetime.datetime.now())
 
     def _next_beat(self, now):
@@ -32,7 +32,7 @@ class HeartBeater(object):
         now = datetime.datetime.now()
         if now > self._beat_time:
             self._next_beat(now)
-            beat_it(self._dashi, self._CFG, self._process_managers_map.values())
+            beat_it(self._dashi, self._CFG, self._factory)
 
 
 class EEAgentMain(object):
@@ -47,13 +47,16 @@ class EEAgentMain(object):
         self._done = False
 
         # There can be only 1 process manager per eeagent (per supd, per ion)
-        self._process_managers_map = get_process_managers(self.CFG)
+        try:
+            self._factory = get_exe_factory(self.CFG.eeagent.launch_type.name, self.CFG)
+            self._interval = 1
+            self.messenger = EEAgentMessageHandler(self.CFG, self._factory, self.log)
+            self.heartbeater = HeartBeater(self.CFG, self._factory, log=self.log)
 
-        self._interval = 1
-        self.messenger = EEAgentMessageHandler(self.CFG, self._process_managers_map, self.log)
-        self.heartbeater = HeartBeater(self.CFG, self._process_managers_map, log=self.log)
-
-        self._res = None
+            self._res = None
+        except Exception, ex:
+            self.log.log(logging.ERROR, "Failed to start EEAgentMain: %s" % (str(ex)))
+            raise
 
     def get_cfg(self):
         return self.CFG
@@ -62,19 +65,22 @@ class EEAgentMain(object):
         self.end()
 
     def wait(self):
-        while not self._done:
-            try:
+        try:
+            while not self._done:
                 try:
-                    self.messenger.poll(timeout=self._interval)
-                except socket.timeout, ex:
-                    self.log.log(logging.DEBUG, "Dashi timeout wakeup %s" % str(ex))
-                self.heartbeater.poll()
-            except Exception, res_ex:
-                self._res = res_ex
-                self.log.log(logging.ERROR, "EEAgentMessagingThread error %s" % str(res_ex))
+                    try:
+                        self.messenger.poll(timeout=self._interval)
+                    except socket.timeout, ex:
+                        self.log.log(logging.DEBUG, "Dashi timeout wakeup %s" % str(ex))
+                    self.heartbeater.poll()
+                except Exception, res_ex:
+                    self._res = res_ex
+                    self.log.log(logging.ERROR, "EEAgentMessagingThread error %s" % str(res_ex))
 
-        for m in self._process_managers_map.values():
-            m.terminate()
+            self._factory.terminate()
+        except Exception, wait_ex:
+            self.log.log(logging.ERROR, "error waiting in EEAgentMain: %s" % (str(wait_ex)))
+            raise
 
         return 0
 

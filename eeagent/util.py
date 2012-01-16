@@ -15,10 +15,10 @@ def _set_param_or_default(kwvals, key, default=None):
     return rc
 
 def validate_supd(CFG):
-    x = CFG.eeagent.launch_types.supd.directory
-    if not os.path.exists(CFG.eeagent.launch_types.supd.directory):
-        os.mkdir(CFG.eeagent.launch_types.supd.directory)
-    x = CFG.eeagent.launch_types.supd.slots
+    x = CFG.eeagent.launch_type.supd_directory
+    if not os.path.exists(CFG.eeagent.launch_type.supd_directory):
+        os.mkdir(CFG.eeagent.launch_type.supd_directory)
+    x = CFG.eeagent.slots
 
 def make_id(u_pid, round):
     return "%s-%s" % (u_pid, round)
@@ -43,10 +43,13 @@ def timeout_poll(poll_obj, timeout):
 def validate_pyon(CFG):
     pass
 
+def validate_pyon_single(CFG):
+    pass
+
 def validate_fork(CFG):
     pass
 
-g_launch_types = {"supd" : validate_supd, "pyon": validate_pyon, "fork" : validate_fork}
+g_launch_types = {"supd" : validate_supd, "pyon": validate_pyon, "fork" : validate_fork, "pyon_single" : validate_pyon_single}
 
 def validate_config(CFG):
 
@@ -70,14 +73,12 @@ def validate_config(CFG):
         x = CFG.pd.name
 
         # verify the launch type
-        x = CFG.eeagent.launch_types
-        if len(CFG.eeagent.launch_types) < 1:
-            raise EEAgentParameterException("There should be at least 1 launch type configured")
-        for t in CFG.eeagent.launch_types:
-            if t not in g_launch_types:
-                raise EEAgentParameterException("The launch type %s in not known" % (t))
-            func = g_launch_types[t]
-            func(CFG)
+        x = CFG.eeagent.launch_type
+        t = CFG.eeagent.launch_type.name
+        if t not in g_launch_types:
+            raise EEAgentParameterException("The launch type %s in not known" % (t))
+        func = g_launch_types[t]
+        func(CFG)
     except AttributeError, ex:
         raise EEAgentParameterException("parameter %s has not been set in your configuration" % ex.args[0])
 

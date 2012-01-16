@@ -15,12 +15,12 @@ eeagent:
     heartbeat: 30
     poll_interval: 2
 
-    launch_types:
-#        pyon:
-#            directory: /tmp
-        supd:
-            directory: /tmp/SupD
-            slots: 8
+    launch_type:
+#       name: pyon_single
+#       working_directory: needs to be filled in
+#       container_args: --noshell
+#       supd_directory: /tmp/SupD
+    slots: 8
 
 pd:
     name: PDHost1

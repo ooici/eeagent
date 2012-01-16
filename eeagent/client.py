@@ -22,12 +22,9 @@ class EEAgentClient(object):
     def heartbeat(self, message):
         self.incoming(json.dumps(message))
 
-    def launch(self, argv, round=0):
+    def launch(self, params, round=0, run_type=EEAgentLaunchType.supd):
         upid = str(uuid.uuid4()).split("-")[0]
-        params = {}
-        params['exec'] = argv[0]
-        params['argv'] = argv[1:]
-        self.dashi.fire(self.ee_name, "launch_process", u_pid=upid, round=round, run_type=EEAgentLaunchType.supd, parameters=params)
+        self.dashi.fire(self.ee_name, "launch_process", u_pid=upid, round=round, run_type=run_type, parameters=params)
         return (upid, round)
 
     def terminate(self, upid, round):

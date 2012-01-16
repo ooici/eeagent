@@ -33,26 +33,22 @@ class EEAgentMessageHandler(object):
 
     @eeagent_lock
     def dump_state(self):
-        beat_it(self.dashi, self.CFG, self._process_managers_map.values(), log=self._log)
+        beat_it(self.dashi, self.CFG, self._process_managers_map, log=self._log)
 
     @eeagent_lock
     def launch_process(self, u_pid, round, run_type, parameters):
-        if run_type not in self._process_managers_map:
+        if run_type != self.CFG.eeagent.launch_type.name:
             raise EEAgentParameterException("Unknown run type %s" % (run_type))
 
         try:
-            factory = self._process_managers_map[run_type]
+            factory = self._process_managers_map
             factory.run(make_id(u_pid, round), parameters)
         except Exception, ex:
             self._log.log(logging.ERROR, "Error on launch %s" % (str(ex)))
 
     def _find_proc(self, u_pid, round):
         id = make_id(u_pid, round)
-        process = None
-        for (k, v) in self._process_managers_map.iteritems():
-            process = v.lookup_id(id)
-            if process:
-                break
+        process = self._process_managers_map.lookup_id(id)
         return process
 
     @eeagent_lock

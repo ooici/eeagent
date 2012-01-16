@@ -13,29 +13,32 @@ import simplejson as json
 from eeagent.client import EEAgentClient
 from eeagent.util import timeout_poll, _set_param_or_default, validate_config
 
-class BasicEEAgentTests(unittest.TestCase):
+g_slot_count=3
+g_timeout=5
 
+def _get_cmd_args():
+    global g_slot_count
+    global g_timeout
+    memory_name = str(uuid.uuid4()).split("-")[0]
     pdname = str(uuid.uuid4()).split("-")[0]
     eename = str(uuid.uuid4()).split("-")[0]
-    pdname = str(uuid.uuid4()).split("-")[0]
-    tmp_dir = tempfile.mkdtemp()
-    memory_name = str(uuid.uuid4()).split("-")[0]
-    exchange_name = str(uuid.uuid4()).split("-")[0]
-    timeout=5
-    slot_count=3
+    tmp_dir = tempfile.mkdtemp(prefix="/tmp/supd")
 
     cmd_line_args = [
         "fakeexe",
         "--server.memory.name=%s" % (memory_name),
-         "--eeagent.launch_types.supd.directory=%s" % (tmp_dir),
+        "--eeagent.launch_type.name=supd",
+         "--eeagent.launch_type.supd_directory=%s" % (tmp_dir),
          "--eeagent.name=%s" % (pdname),
-         "--eeagent.launch_types.supd.slots=%d" % (slot_count),
+         "--eeagent.slots=%d" % (g_slot_count),
          "--pd.name=%s" % (eename),
          "--dashi.exchange=%s" % (eename),
-         "--eeagent.heartbeat=%d" % (timeout)
+         "--eeagent.heartbeat=%d" % (g_timeout)
     ]
+    return cmd_line_args
 
-    eeagent = EEAgentMain(cmd_line_args)
+class BasicEEAgentTests(unittest.TestCase):
+    eeagent = EEAgentMain(_get_cmd_args())
     mainThread = MainRunnerThread(eeagent)
 
     @classmethod
@@ -95,9 +98,11 @@ class BasicEEAgentTests(unittest.TestCase):
         self.client.poll(count=1)
 
     def test_fill_the_slots(self):
+        global g_slot_count
         jobs = []
-        for i in range(0, BasicEEAgentTests.slot_count):
-            uid_round = self.client.launch(["/bin/sleep", "600"])
+        params = {'exec' : "/bin/sleep", 'argv': '600'}
+        for i in range(0, g_slot_count):
+            uid_round = self.client.launch(params)
             jobs.append(uid_round)
         timeout_poll(self.client, 3)
         self.client.dump()
@@ -107,17 +112,19 @@ class BasicEEAgentTests(unittest.TestCase):
             self.assertTrue(pd is not None)
 
     def test_over_fill_the_slots(self):
+        global g_slot_count
         jobs = []
-        for i in range(0, BasicEEAgentTests.slot_count):
-            uid_round = self.client.launch(["/bin/sleep", "600"])
+        params = {'exec' : "/bin/sleep", 'argv': '600'}
+        for i in range(0, g_slot_count):
+            uid_round = self.client.launch(params)
             jobs.append(uid_round)
-        uid_round = self.client.launch(["/bin/sleep",  "600"])
+        uid_round = self.client.launch(params)
         timeout_poll(self.client, 5)
         self.client.dump()
         self.client.poll(count=1)
         print self.beats[-1]
         bl = len(self.beats[-1]['processes'])
-        self.assertTrue(bl == BasicEEAgentTests.slot_count + 1)
+        self.assertTrue(bl == g_slot_count + 1)
         for j in jobs:
             pd = self._find_process_in_beat(j[0], "RUNNING")
             self.assertTrue(pd is not None)
@@ -129,7 +136,8 @@ class BasicEEAgentTests(unittest.TestCase):
         self.assertTrue(pd is not None)
 
     def test_not_a_command(self):
-        (upid, round) = self.client.launch(["/not/A/Command"])
+        params = {'exec' : "/not/A/Command", 'argv' : "1"}
+        (upid, round) = self.client.launch(params)
         self.client.poll(timeout=1)
         self.client.dump()
         self.client.poll(count=1)
@@ -137,7 +145,8 @@ class BasicEEAgentTests(unittest.TestCase):
         self.assertTrue(pd is not None)
 
     def test_complete_command(self):
-        (upid, round) = self.client.launch(["/bin/sleep", "1"])
+        params = {'exec' : "/bin/sleep", 'argv' : "1"}
+        (upid, round) = self.client.launch(params)
         # poll longer than the exe to get the exit code
         timeout_poll(self.client, 3)
         self.client.dump()
@@ -147,7 +156,8 @@ class BasicEEAgentTests(unittest.TestCase):
         self.assertTrue(pd is not None)
 
     def test_launch_beat_terminate_cleanup(self):
-        (upid, round) = self.client.launch(["/bin/sleep", "600"])
+        params = {'exec' : "/bin/sleep", 'argv' : "600"}
+        (upid, round) = self.client.launch(params)
         # give it time to start
         timeout_poll(self.client, 3)
         self.client.dump()
@@ -207,21 +217,24 @@ class BasicEEAgentTests(unittest.TestCase):
         self.assertTrue(len(self.beats) > 0, "There should be heart beat messages %s" % (str(self.beats)))
 
     def test_heartbeat_time(self):
+        global g_timeout
         count = 1
         start = datetime.datetime.now()
         self.client.poll(count=1)
         end = datetime.datetime.now()
-        if datetime.timedelta(seconds=BasicEEAgentTests.timeout*2) < end - start:
+        if datetime.timedelta(seconds=g_timeout*2) < end - start:
             self.fail("The heartbeat took too long")
         self.assertTrue(len(self.beats) >= count, "beats should be %d long is %d" % (count, len(self.beats)))
 
     def test_heartbeat_time_poll(self):
+        global g_timeout
         count = 1
-        timeout_poll(self.client, BasicEEAgentTests.timeout*2)
+        timeout_poll(self.client, g_timeout*2)
         self.assertTrue(len(self.beats) >= count, "beats should be %d long is %d" % (count, len(self.beats)))
 
     def test_complete_command(self):
-        (upid, round) = self.client.launch(["/bin/sleep", "1"])
+        params = {'exec' : "/bin/sleep", 'argv' : "1"}
+        (upid, round) = self.client.launch(params)
         self.client.poll(timeout=3)
         self.client.dump()
         self.client.poll(count=1)
@@ -246,7 +259,7 @@ class BasicEEAgentTests(unittest.TestCase):
                 threading.Thread.__init__(self)
 
             def run(self):
-                agent.main()
+                agent.main(_get_cmd_args())
 
         t = TestMainRunnerThread()
         t.start()
