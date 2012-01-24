@@ -21,7 +21,7 @@ class EEAgentMessageHandler(object):
         self._process_managers_map = process_managers_map
         self.pd_name = CFG.pd.name
         self.ee_name = CFG.eeagent.name
-        self.exchange = CFG.dashi.exchange
+        self.exchange = CFG.server.amqp.exchange
         self._log = log
         self._lock = threading.RLock()
         self.dashi = dashi_connect(self.ee_name, CFG)

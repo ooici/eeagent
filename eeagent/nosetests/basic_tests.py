@@ -31,7 +31,7 @@ class BasicEEAgentTests(unittest.TestCase):
          "--eeagent.name=%s" % (pdname),
          "--eeagent.launch_types.supd.slots=%d" % (slot_count),
          "--pd.name=%s" % (eename),
-         "--dashi.exchange=%s" % (eename),
+         "--server.amqp.exchange=%s" % (eename),
          "--eeagent.heartbeat=%d" % (timeout)
     ]
 

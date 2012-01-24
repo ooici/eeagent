@@ -6,8 +6,6 @@ server:
     password: guest
     vhost: /
     heartbeat: 10
-
-dashi:
     exchange: eeagentEX
 
 eeagent:
