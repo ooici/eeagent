@@ -13,7 +13,7 @@ class EEAgentClient(object):
         self.CFG = CFG
         self.ee_name = CFG.eeagent.name
         self.pd_name = CFG.pd.name
-        self.exchange = CFG.dashi.exchange
+        self.exchange = CFG.server.amqp.exchange
         self._log = log
         self.dashi = dashi_connect(self.pd_name, CFG)
         self.incoming = incoming

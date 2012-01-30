@@ -34,6 +34,7 @@ def _get_cmd_args():
          "--pd.name=%s" % (eename),
          "--dashi.exchange=%s" % (eename),
          "--eeagent.heartbeat=%d" % (g_timeout)
+         "--server.amqp.exchange=%s" % (eename),
     ]
     return cmd_line_args
 
