@@ -12,19 +12,20 @@ class PidWrapper(object):
     users launch request in the event that the pidantic object failed to run.  This minimzes lost messages
     in the event of sqldb errors, supervisord errors, or pyon errors.
     """
-    REQUESTING = (100, "REQUESTING")
+
+    PENDING = (400, "PENDING")
     RUNNING = (500, "RUNNING")
     TERMINATING = (600, "TERMINATING")
-    INVALID = (900, "INVALID")
-    REJECTED = (850, "REJECTED")
-    FAILED = (800, "FAILED")
-    EXITED = (1000, "EXITED")
     TERMINATED = (700, "TERMINATED")
-
+    EXITED = (800, "EXITED")
+    FAILED = (850, "FAILED")
+    REJECTED = (900, "REJECTED")
+    INVALID = (999, "INVALID")
+    
     state_map = {}
-    state_map["STATE_INITIAL"] = REQUESTING
-    state_map["STATE_PENDING"] = REQUESTING
-    state_map["STATE_STARTING"] = REQUESTING
+    state_map["STATE_INITIAL"] = PENDING
+    state_map["STATE_PENDING"] = PENDING
+    state_map["STATE_STARTING"] = PENDING
     state_map["STATE_RUNNING"] = RUNNING
     state_map["STATE_STOPPING"] = TERMINATING
     state_map["STATE_STOPPING_RESTART"] = INVALID
@@ -190,7 +191,7 @@ class SupDExe(object):
         return self._known_pws
         
     def _get_running(self):
-        running_states = [PidWrapper.RUNNING, PidWrapper.TERMINATING, PidWrapper.REQUESTING]
+        running_states = [PidWrapper.RUNNING, PidWrapper.TERMINATING, PidWrapper.PENDING]
         a = self.get_all().values()
         running = [i.get_state() for i in a]
 

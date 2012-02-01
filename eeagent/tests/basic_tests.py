@@ -33,7 +33,7 @@ def _get_cmd_args():
          "--eeagent.slots=%d" % (g_slot_count),
          "--pd.name=%s" % (eename),
          "--dashi.exchange=%s" % (eename),
-         "--eeagent.heartbeat=%d" % (g_timeout)
+         "--eeagent.heartbeat=%d" % (g_timeout),
          "--server.amqp.exchange=%s" % (eename),
     ]
     return cmd_line_args

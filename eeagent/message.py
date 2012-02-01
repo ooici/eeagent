@@ -63,7 +63,7 @@ class EEAgentMessageHandler(object):
 
     @eeagent_lock
     def cleanup(self, u_pid, round):
-        allowed_states = [PidWrapper.REQUESTING, PidWrapper.TERMINATED, PidWrapper.EXITED, PidWrapper.REJECTED, PidWrapper.FAILED]
+        allowed_states = [PidWrapper.PENDING, PidWrapper.TERMINATED, PidWrapper.EXITED, PidWrapper.REJECTED, PidWrapper.FAILED]
         process = self._find_proc(u_pid, round)
         if not process:
             return
