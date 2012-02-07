@@ -113,7 +113,7 @@ class PyonRelExe(object):
     def run(self, name, parameters):
         # check parameters and massage into a supd call
         
-        rel_file_str = "apps"
+        rel_file_str = "rel"
 
         if rel_file_str not in parameters:
             raise EEAgentParameterException("%s must be in the parameters for a pyon run" % (rel_file_str))

@@ -131,15 +131,17 @@ class PyonRelEEAgentTests(unittest.TestCase):
     def test_run_simple(self):
         self._test_for_pyon()
 
-        yml_params = {"apps" :
-            {"type": 'application',
-             "name": "hello2",
-             "description": "Hello service (app version)",
-             "version": "0.1",
-             "mod": "examples.service.hello_service",
-             'dependencies': '[]',
-             "config": {"some": '"Hi"'},
+        yml_params = {"rel":{
+            "apps" :
+             {"type": 'application',
+              "name": "hello2",
+              "description": "Hello service (app version)",
+              "version": "0.1",
+              "mod": "examples.service.hello_service",
+              'dependencies': '[]',
+              "config": {"some": '"Hi"'},
              }
+           }
           }
         (upid, round) = self.client.launch(yml_params, run_type=EEAgentLaunchType.pyon_single)
         self.client.dump()
