@@ -25,10 +25,19 @@ class HeartBeater(object):
         self._factory = factory
         self._next_beat(datetime.datetime.now())
 
+        self._factory.set_state_change_callback(self._state_change_callback, None)
+
     def _next_beat(self, now):
         self._beat_time = now + datetime.timedelta(seconds=self._interval)
 
+    def _state_change_callback(self, user_arg):
+        # on state change set the beat time to now
+        self._beat_time = datetime.datetime.now()
+
     def poll(self):
+
+        self._factory.poll()
+        
         now = datetime.datetime.now()
         if now > self._beat_time:
             self._next_beat(now)

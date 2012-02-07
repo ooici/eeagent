@@ -77,6 +77,10 @@ class PidWrapper(object):
             return
         self._pidantic.cleanup()
         self._exe._remove_proc(self._name)
+
+    def set_state_change_callback(self, cb, user_arg):
+        self._pidantic.set_state_change_callback(cb, user_arg)
+
         
 class PyonExe(object):
 
@@ -102,6 +106,9 @@ class PyonRelExe(object):
         else:
             pyon_args = ""
         self.pyon_args = pyon_args.split()
+
+    def set_state_change_callback(self, cb, user_arg):
+        self._supdexe.set_state_change_callback(cb, user_arg)
 
     def run(self, name, parameters):
         # check parameters and massage into a supd call
@@ -156,17 +163,29 @@ class SupDExe(object):
             pw = PidWrapper(self, name)
             pw.set_pidantic(pidantic)
             self._known_pws[name] = pw
+        self._state_change_cb = None
+        self._state_change_cb_arg = None
+
+    def set_state_change_callback(self, cb, user_arg):
+        self._state_change_cb = cb
+        self._state_change_cb_arg = user_arg
+
+        for name in self._known_pws:
+            pw = self._known_pws['name']
+            pw.set_state_change_callback(self._state_change_cb, self._state_change_cb_arg)
 
     def run(self, name, parameters):
         pw = PidWrapper(self, name)
         self._known_pws[name] = pw
-        command = parameters['exec'] + " " + ' '.join(parameters['argv'])
+        command = parameters['exec'] + " " + parameters['argv']
 
         dir = self._working_dir
         if "working_directory" in parameters:
             dir = parameters["working_directory"]
         pid = self._factory.get_pidantic(command=command, process_name=name, directory=dir)
         pw.set_pidantic(pid)
+        if self._state_change_cb:
+            pw.set_state_change_callback(self._state_change_cb, self._state_change_cb_arg)
 
         running_jobs = self._get_running()
         x = len(running_jobs)

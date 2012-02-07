@@ -236,7 +236,7 @@ class BasicEEAgentTests(unittest.TestCase):
     def test_complete_command(self):
         params = {'exec' : "/bin/sleep", 'argv' : "1"}
         (upid, round) = self.client.launch(params)
-        self.client.poll(timeout=3)
+        timeout_poll(self.client, 3)
         self.client.dump()
         self.client.poll(count=1)
         pd = self._find_process_in_beat(upid, "EXITED")
