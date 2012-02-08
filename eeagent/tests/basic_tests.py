@@ -101,7 +101,7 @@ class BasicEEAgentTests(unittest.TestCase):
     def test_fill_the_slots(self):
         global g_slot_count
         jobs = []
-        params = {'exec' : "/bin/sleep", 'argv': '600'}
+        params = {'exec' : "/bin/sleep", 'argv': ['600',]}
         for i in range(0, g_slot_count):
             uid_round = self.client.launch(params)
             jobs.append(uid_round)
@@ -115,7 +115,7 @@ class BasicEEAgentTests(unittest.TestCase):
     def test_over_fill_the_slots(self):
         global g_slot_count
         jobs = []
-        params = {'exec' : "/bin/sleep", 'argv': '600'}
+        params = {'exec' : "/bin/sleep", 'argv': ['600',]}
         for i in range(0, g_slot_count):
             uid_round = self.client.launch(params)
             jobs.append(uid_round)
@@ -137,7 +137,7 @@ class BasicEEAgentTests(unittest.TestCase):
         self.assertTrue(pd is not None)
 
     def test_not_a_command(self):
-        params = {'exec' : "/not/A/Command", 'argv' : "1"}
+        params = {'exec' : "/not/A/Command", 'argv' : ["1",]}
         (upid, round) = self.client.launch(params)
         self.client.poll(timeout=1)
         self.client.dump()
@@ -146,7 +146,7 @@ class BasicEEAgentTests(unittest.TestCase):
         self.assertTrue(pd is not None)
 
     def test_complete_command(self):
-        params = {'exec' : "/bin/sleep", 'argv' : "1"}
+        params = {'exec' : "/bin/sleep", 'argv' : ["1",]}
         (upid, round) = self.client.launch(params)
         # poll longer than the exe to get the exit code
         timeout_poll(self.client, 3)
@@ -157,7 +157,7 @@ class BasicEEAgentTests(unittest.TestCase):
         self.assertTrue(pd is not None)
 
     def test_launch_beat_terminate_cleanup(self):
-        params = {'exec' : "/bin/sleep", 'argv' : "600"}
+        params = {'exec' : "/bin/sleep", 'argv' : ["600",]}
         (upid, round) = self.client.launch(params)
         # give it time to start
         timeout_poll(self.client, 3)
@@ -234,7 +234,7 @@ class BasicEEAgentTests(unittest.TestCase):
         self.assertTrue(len(self.beats) >= count, "beats should be %d long is %d" % (count, len(self.beats)))
 
     def test_complete_command(self):
-        params = {'exec' : "/bin/sleep", 'argv' : "1"}
+        params = {'exec' : "/bin/sleep", 'argv' : ["1",]}
         (upid, round) = self.client.launch(params)
         timeout_poll(self.client, 3)
         self.client.dump()

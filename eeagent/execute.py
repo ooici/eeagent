@@ -177,7 +177,7 @@ class SupDExe(object):
     def run(self, name, parameters):
         pw = PidWrapper(self, name)
         self._known_pws[name] = pw
-        command = parameters['exec'] + " " + parameters['argv']
+        command = parameters['exec'] + " " + " ".join(parameters['argv'])
 
         dir = self._working_dir
         if "working_directory" in parameters:
