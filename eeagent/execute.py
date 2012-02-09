@@ -122,7 +122,10 @@ class PyonRelExe(object):
         os.write(osf, json.dumps(rel_file_contents))
         os.close(osf)
 
-        args = ["--rel", tmp_file] + self.pyon_args
+        extra_args = parameters.get("container_args", [])
+
+        args = ["--rel", tmp_file] + self.pyon_args + extra_args
+
 
         supd_params = {
             'exec': self._pyon_exe,
