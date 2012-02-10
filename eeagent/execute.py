@@ -126,10 +126,10 @@ class PyonRelExe(object):
 
         try:
             logging_cfg = parameters["logging"]
-            (osf, tmp_file) = tempfile.mkstemp(text=True)
-            os.write(osf, json.dumps(logging_cfg))
-            os.close(osf)
-            extra_args.extend(["--logcfg", tmp_file])
+            (log_osf, log_tmp_file) = tempfile.mkstemp(text=True)
+            os.write(log_osf, json.dumps(logging_cfg))
+            os.close(log_osf)
+            extra_args.extend(["--logcfg", log_tmp_file])
         except IndexError:
             # No logging config to add
             pass
