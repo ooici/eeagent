@@ -64,7 +64,7 @@ class EEAgentMain(object):
 
             self._res = None
         except Exception, ex:
-            self.log.log(logging.ERROR, "Failed to start EEAgentMain: %s" % (str(ex)))
+            self.log.exception("Failed to start EEAgentMain: %s" % (str(ex)))
             raise
 
     def get_cfg(self):
