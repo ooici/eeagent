@@ -134,6 +134,16 @@ class PyonRelExe(object):
             # No logging config to add
             pass
 
+        try:
+            pyon_cfg = parameters["config"]
+            (pyon_cfg_osf, pyon_cfg_tmp_file) = tempfile.mkstemp(text=True)
+            os.write(pyon_cfg_osf, json.dumps(pyon_cfg))
+            os.close(pyon_cfg_osf)
+            extra_args.extend(["--config", pyon_cfg_tmp_file])
+        except IndexError:
+            # No logging config to add
+            pass
+
         args = ["--rel", tmp_file] + self.pyon_args + extra_args
 
         supd_params = {
