@@ -141,7 +141,7 @@ class PyonRelExe(object):
             os.close(pyon_cfg_osf)
             extra_args.extend(["--config", pyon_cfg_tmp_file])
         except IndexError:
-            # No logging config to add
+            # No pyon config to add
             pass
 
         args = ["--rel", tmp_file] + self.pyon_args + extra_args
