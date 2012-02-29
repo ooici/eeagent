@@ -183,11 +183,8 @@ class BasicEEAgentTests(unittest.TestCase):
         self.assertTrue(pd is not None, "The terminated state was not found")
 
         self.client.cleanup(upid, 0)
-        self.client.dump()
-        self.client.poll(count=1)
-        # clear one out and give it a beat
+        timeout_poll(self.client, g_timeout*2)
         self.beats = []
-        self.client.dump()
         self.client.poll(count=1)
         pd = self._find_process_in_beat(upid)
         self.assertTrue(pd is None)
