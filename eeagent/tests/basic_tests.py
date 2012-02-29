@@ -139,7 +139,7 @@ class BasicEEAgentTests(unittest.TestCase):
     def test_not_a_command(self):
         params = {'exec' : "/not/A/Command", 'argv' : ["1",]}
         (upid, round) = self.client.launch(params)
-        self.client.poll(timeout=1)
+        timeout_poll(self.client, timeout=1)
         self.client.dump()
         self.client.poll(count=1)
         pd = self._find_process_in_beat(upid, "FAILED")
