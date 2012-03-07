@@ -24,4 +24,4 @@ def beat_it(dashi, CFG, pm, log=logging):
         log.log(logging.DEBUG, "Sending the heartbeat : %s" % (json.dumps(beat_msg)))
         dashi.fire(CFG.pd.name, "heartbeat", message=beat_msg)
     except Exception, ex:
-        log.log(logging.ERROR, "Error Sending the heartbeat : %s" % (str(ex)))
+        log.exception("Error Sending the heartbeat : %s" % (str(ex)))

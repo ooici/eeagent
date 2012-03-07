@@ -1,6 +1,7 @@
 import os
 import tempfile
 import simplejson as json
+from subprocess import check_call, CalledProcessError
 from pidantic.supd.pidsupd import SupDPidanticFactory
 from eeagent.eeagent_exceptions import EEAgentParameterException
 from eeagent.util import _set_param_or_default
@@ -43,6 +44,7 @@ class PidWrapper(object):
             return PidWrapper.FAILED
 
         state = self._pidantic.get_state()
+
         if state == "STATE_EXITED":
             if self._pidantic.get_result_code() != 0:
                 new_state = PidWrapper.FAILED
@@ -52,6 +54,9 @@ class PidWrapper(object):
         else:
             new_state = PidWrapper.state_map[state]
         return new_state
+
+    def get_all_state(self):
+        return self._pidantic.get_all_state()
 
     def get_name(self):
         return self._name
@@ -81,6 +86,59 @@ class PidWrapper(object):
     def set_state_change_callback(self, cb, user_arg):
         self._pidantic.set_state_change_callback(cb, user_arg)
 
+class PyonPidWrapper(object):
+    """This class is used to wrap a PidWrapper so we can get the state from
+    the control_cc program, rather than just asking supervisord for that
+    state.
+
+    It should only be used in eeagent/eeagent/beatit.py
+    """
+
+    def __init__(self, pidwrapper, pyon_dir):
+        self.pidwrapper = pidwrapper
+        self._pyon_dir = pyon_dir
+        self._control_cc = os.path.join(self._pyon_dir, "bin", "control_cc")
+
+    def get_state(self):
+        state = self.pidwrapper.get_state()
+        if state == PidWrapper.RUNNING:
+            # Attempt to read the Pyon pidfile, and get state from control_cc
+            all_state = self.get_all_state()
+            state_for_this_proc = all_state.pop()
+            pidfile = "cc-pid-%s" % state_for_this_proc["pid"]
+            if os.access(pidfile, os.R_OK):
+                try:
+                    check_call([self._control_cc, pidfile, "status"], cwd=self._pyon_dir)
+                except CalledProcessError:
+                    state = PidWrapper.FAILED
+        return state
+
+    # The rest of these are passthroughs
+
+    def get_all_state(self):
+        return self.pidwrapper.get_all_state()
+
+    def get_error_message(self):
+        return self.pidwrapper.get_error_message()
+
+    def get_name(self):
+        return self.pidwrapper._name
+
+    def set_pidantic(self, p):
+        self.pidwrapper._pidantic(p)
+
+    def set_error_message(self, msg):
+        self.pidwrapper.set_error_message(msg)
+
+    def terminate(self):
+        self.pidwrapper.terminate()
+
+    def clean_up(self):
+        self.pidwrapper.cleanup()
+
+    def set_state_change_callback(self, cb, user_arg):
+        self.pidwrapper.set_state_change_callback(cb, user_arg)
+
         
 class PyonExe(object):
 
@@ -100,6 +158,8 @@ class PyonRelExe(object):
         self._pyon_dir = eeagent_cfg.launch_type.pyon_directory
         self._supdexe = SupDExe(eeagent_cfg)
         self._pyon_exe = os.path.join(self._pyon_dir, "bin/pycc")
+        self._control_cc_exe = os.path.join(self._pyon_dir, "bin/control_cc")
+
 
         if "container_args" in eeagent_cfg.launch_type:
             pyon_args = eeagent_cfg.launch_type.container_args
@@ -130,7 +190,7 @@ class PyonRelExe(object):
             os.write(log_osf, json.dumps(logging_cfg))
             os.close(log_osf)
             extra_args.extend(["--logcfg", log_tmp_file])
-        except IndexError:
+        except KeyError:
             # No logging config to add
             pass
 
@@ -140,7 +200,7 @@ class PyonRelExe(object):
             os.write(pyon_cfg_osf, json.dumps(pyon_cfg))
             os.close(pyon_cfg_osf)
             extra_args.extend(["--config", pyon_cfg_tmp_file])
-        except IndexError:
+        except KeyError:
             # No pyon config to add
             pass
 
@@ -162,9 +222,16 @@ class PyonRelExe(object):
         return self._supdexe.lookup_id(name)
 
     def get_all(self):
-        return self._supdexe.get_all()
+        _all = self._supdexe.get_all()
+        wrapped = {}
+        for upid, pidwrapper in _all.iteritems():
+            wrapped[upid] = PyonPidWrapper(pidwrapper, self._pyon_dir)
+        return wrapped
 
     def poll(self):
+        poll_result = self._supdexe.poll()
+        with open("/tmp/poll.log", "a") as plf:
+            plf.write("%s\n" % poll_result)
         return self._supdexe.poll()
 
     def terminate(self):

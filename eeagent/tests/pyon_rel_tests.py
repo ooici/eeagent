@@ -146,7 +146,9 @@ class PyonRelEEAgentTests(unittest.TestCase):
         (upid, round) = self.client.launch(yml_params, run_type=EEAgentLaunchType.pyon_single)
         self.client.dump()
         self.client.poll(count=1)
-        pass
+
+        proc = self._find_process_in_beat(upid)
+        assert proc
 
     def _find_process_in_beat(self, upid, state=None):
         for b in self.beats:

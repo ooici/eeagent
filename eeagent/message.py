@@ -44,7 +44,7 @@ class EEAgentMessageHandler(object):
             factory = self._process_managers_map
             factory.run(make_id(u_pid, round), parameters)
         except Exception, ex:
-            self._log.log(logging.ERROR, "Error on launch %s" % (str(ex)))
+            self._log.exception("Error on launch %s" % (str(ex)))
 
     def _find_proc(self, u_pid, round):
         id = make_id(u_pid, round)
