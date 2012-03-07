@@ -229,9 +229,6 @@ class PyonRelExe(object):
         return wrapped
 
     def poll(self):
-        poll_result = self._supdexe.poll()
-        with open("/tmp/poll.log", "a") as plf:
-            plf.write("%s\n" % poll_result)
         return self._supdexe.poll()
 
     def terminate(self):
