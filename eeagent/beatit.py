@@ -17,7 +17,12 @@ def beat_it(dashi, CFG, pm, log=logging):
         for pname in processes:
             p = processes[pname]
             (name, round) = unmake_id(p.get_name())
-            beat_p = {'upid': name, 'round': round, 'state': p.get_state(), 'msg': p.get_error_message()}
+            try:
+                state = p.get_state()
+            except:
+                log.exception("Had a problem getting process state")
+                raise
+            beat_p = {'upid': name, 'round': round, 'state': state, 'msg': p.get_error_message()}
             beat_processes.append(beat_p)
         beat_msg['processes'] = beat_processes
 
