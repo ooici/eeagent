@@ -158,8 +158,6 @@ class PyonRelExe(object):
         self._pyon_dir = eeagent_cfg.launch_type.pyon_directory
         self._supdexe = SupDExe(eeagent_cfg)
         self._pyon_exe = os.path.join(self._pyon_dir, "bin/pycc")
-        self._control_cc_exe = os.path.join(self._pyon_dir, "bin/control_cc")
-
 
         if "container_args" in eeagent_cfg.launch_type:
             pyon_args = eeagent_cfg.launch_type.container_args
