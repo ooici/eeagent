@@ -95,15 +95,18 @@ class PyonPidWrapper(object):
     It should only be used in eeagent/eeagent/beatit.py
     """
 
-    def __init__(self, pidwrapper, pyon_dir, log=logging):
+    def __init__(self, pidwrapper, pyon_dir, control_cc_cache, log=logging):
         self.log = log
         self.pidwrapper = pidwrapper
+        self.upid = self.pidwrapper.get_name()
+        self.control_cc_cache = control_cc_cache
         self._pyon_dir = pyon_dir
         self._control_cc = os.path.join(self._pyon_dir, "bin", "control_cc")
 
     def get_state(self):
         state = self.pidwrapper.get_state()
-        if state == PidWrapper.RUNNING:
+        cached_control_cc_state = self.control_cc_cache.get_state(self.upid)
+        if state == PidWrapper.RUNNING and cached_control_cc_state != PidWrapper.RUNNING:
             # Attempt to read the Pyon pidfile, and get state from control_cc
             all_state = self.get_all_state()
             state_for_this_proc = all_state.pop()
@@ -111,14 +114,15 @@ class PyonPidWrapper(object):
             pidfile = os.path.join(self._pyon_dir, pidfile)
             if os.access(pidfile, os.R_OK):
                 try:
-                    #TODO: remove this once we're happy with control_cc
+                    #TODO: demote thisto debug once we're happy with control_cc
                     self.log.info("Got state %s from control_cc" % str(state))
                     check_call([self._control_cc, pidfile, "status"], cwd=self._pyon_dir)
                 except CalledProcessError:
                     self.log.warning("Got state %s from control_cc" % str(state))
                     state = PidWrapper.FAILED
+                self.control_cc_cache.set_state(self.upid, state)
             else:
-                self.log.warning("No pidfile available for pyon process with pid %s" % state_for_this_proc["pid"])
+                self.log.warning("Pidfile %s not available for pyon process %s" % (pidfile, self.upid))
 
 
         return state
@@ -149,6 +153,21 @@ class PyonPidWrapper(object):
     def set_state_change_callback(self, cb, user_arg):
         self.pidwrapper.set_state_change_callback(cb, user_arg)
 
+class ControlCCCache(object):
+    """
+    This is a cache indexed by upid to mark whether a upid has gotten
+    a state from control_cc
+    """
+    def __init__(self):
+        self._has_control_cc_state = {}
+
+    def get_state(self, upid):
+        return self._has_control_cc_state.get(upid)
+
+    def set_state(self, upid, state):
+        self._has_control_cc_state[upid] = state
+
+
         
 class PyonExe(object):
 
@@ -178,6 +197,8 @@ class PyonRelExe(object):
         else:
             pyon_args = ""
         self.pyon_args = pyon_args.split()
+
+        self.control_cc_cache = ControlCCCache()
 
     def set_state_change_callback(self, cb, user_arg):
         self._supdexe.set_state_change_callback(cb, user_arg)
@@ -237,7 +258,8 @@ class PyonRelExe(object):
         _all = self._supdexe.get_all()
         wrapped = {}
         for upid, pidwrapper in _all.iteritems():
-            wrapped[upid] = PyonPidWrapper(pidwrapper, self._pyon_dir, log=self.log)
+            wrapped[upid] = PyonPidWrapper(pidwrapper, self._pyon_dir,
+                    self.control_cc_cache, log=self.log)
         return wrapped
 
     def poll(self):
