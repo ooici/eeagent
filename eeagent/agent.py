@@ -57,7 +57,7 @@ class EEAgentMain(object):
 
         # There can be only 1 process manager per eeagent (per supd, per ion)
         try:
-            self._factory = get_exe_factory(self.CFG.eeagent.launch_type.name, self.CFG)
+            self._factory = get_exe_factory(self.CFG.eeagent.launch_type.name, self.CFG, log=self.log)
             self._interval = 1
             self.messenger = EEAgentMessageHandler(self.CFG, self._factory, self.log)
             self.heartbeater = HeartBeater(self.CFG, self._factory, log=self.log)

@@ -1,5 +1,6 @@
 import os
 import tempfile
+import logging
 import simplejson as json
 from subprocess import check_call, CalledProcessError
 from pidantic.supd.pidsupd import SupDPidanticFactory
@@ -94,7 +95,8 @@ class PyonPidWrapper(object):
     It should only be used in eeagent/eeagent/beatit.py
     """
 
-    def __init__(self, pidwrapper, pyon_dir):
+    def __init__(self, pidwrapper, pyon_dir, log=logging):
+        self.log = log
         self.pidwrapper = pidwrapper
         self._pyon_dir = pyon_dir
         self._control_cc = os.path.join(self._pyon_dir, "bin", "control_cc")
@@ -106,11 +108,19 @@ class PyonPidWrapper(object):
             all_state = self.get_all_state()
             state_for_this_proc = all_state.pop()
             pidfile = "cc-pid-%s" % state_for_this_proc["pid"]
+            pidfile = os.path.join(self._pyon_dir, pidfile)
             if os.access(pidfile, os.R_OK):
                 try:
+                    #TODO: remove this once we're happy with control_cc
+                    self.log.info("Got state %s from control_cc" % str(state))
                     check_call([self._control_cc, pidfile, "status"], cwd=self._pyon_dir)
                 except CalledProcessError:
+                    self.log.warning("Got state %s from control_cc" % str(state))
                     state = PidWrapper.FAILED
+            else:
+                self.log.warning("No pidfile available for pyon process with pid %s" % state_for_this_proc["pid"])
+
+
         return state
 
     # The rest of these are passthroughs
@@ -142,12 +152,16 @@ class PyonPidWrapper(object):
         
 class PyonExe(object):
 
-    def __init__(self):
+    def __init__(self, log=logging):
+        self.log = log
+        self.log.debug("Starting PyonExe")
         pass
 
 class PyonRelExe(object):
 
-    def __init__(self, eeagent_cfg):
+    def __init__(self, eeagent_cfg, log=logging):
+        self.log = log
+        self.log.debug("Starting PyonRelExe")
         self.name = eeagent_cfg.name
         mandatory_args = ['pyon_directory', 'supd_directory']
 
@@ -223,7 +237,7 @@ class PyonRelExe(object):
         _all = self._supdexe.get_all()
         wrapped = {}
         for upid, pidwrapper in _all.iteritems():
-            wrapped[upid] = PyonPidWrapper(pidwrapper, self._pyon_dir)
+            wrapped[upid] = PyonPidWrapper(pidwrapper, self._pyon_dir, log=self.log)
         return wrapped
 
     def poll(self):
@@ -234,7 +248,9 @@ class PyonRelExe(object):
 
 class SupDExe(object):
 
-    def __init__(self, eeagent_cfg):
+    def __init__(self, eeagent_cfg, log=logging):
+        self.log = log
+        self.log.debug("Starting SupDExe")
         self._working_dir = eeagent_cfg.launch_type.supd_directory
         self._eename = eeagent_cfg.name
         supdexe = _set_param_or_default(eeagent_cfg.launch_type, 'supdexe', None)
@@ -307,14 +323,14 @@ class SupDExe(object):
     def terminate(self):
         self._factory.terminate()
 
-def get_exe_factory(name, CFG):
+def get_exe_factory(name, CFG, log=logging):
 
     if name == "supd":
-        factory = SupDExe(CFG.eeagent)
+        factory = SupDExe(CFG.eeagent, log=log)
     elif name == "pyon":
-        factory = PyonExe()
+        factory = PyonExe(log=log)
     elif name == "pyon_single":
-        factory = PyonRelExe(CFG.eeagent)
+        factory = PyonRelExe(CFG.eeagent, log=log)
     else:
         raise EEAgentParameterException("%s is an unknown launch type" % (name))
 
