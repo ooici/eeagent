@@ -116,14 +116,14 @@ class PyonPidWrapper(object):
                 try:
                     check_call([self._control_cc, pidfile, "status"], cwd=self._pyon_dir)
                     #TODO: demote thisto debug once we're happy with control_cc
-                    self.log.info("Got state %s from control_cc for upid %s" % (str(state), self.upid))
+                    self.log.info("Got return code %s from control_cc for upid %s. Setting state to %s." % ('0', self.upid, str(state)))
                 except CalledProcessError, error:
                     # control_cc returns 2 when a process is still starting
                     if error.returncode == 2:
                         state = PidWrapper.PENDING
                     else:
                         state = PidWrapper.FAILED
-                    self.log.warning("Got state %s from control_cc for upid %s" % (str(state), self.upid))
+                    self.log.warning("Got return code %s from control_cc for upid %s. Setting state to %s." % (error.returncode, self.upid, str(state)))
                 self.control_cc_cache.set_state(self.upid, state)
             else:
                 self.log.warning("Pidfile %s not available for pyon process %s" % (pidfile, self.upid))
