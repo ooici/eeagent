@@ -114,9 +114,9 @@ class PyonPidWrapper(object):
             pidfile = os.path.join(self._pyon_dir, pidfile)
             if os.access(pidfile, os.R_OK):
                 try:
+                    check_call([self._control_cc, pidfile, "status"], cwd=self._pyon_dir)
                     #TODO: demote thisto debug once we're happy with control_cc
                     self.log.info("Got state %s from control_cc for upid %s" % (str(state), self.upid))
-                    check_call([self._control_cc, pidfile, "status"], cwd=self._pyon_dir)
                 except CalledProcessError, error:
                     # control_cc returns 2 when a process is still starting
                     if error.returncode == 2:
