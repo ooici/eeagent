@@ -124,9 +124,10 @@ class PyonPidWrapper(object):
                     else:
                         state = PidWrapper.PENDING
                     self.log.warning("Got return code %s from control_cc for upid %s. Setting state to %s." % (error.returncode, self.upid, str(state)))
-                self.control_cc_cache.set_state(self.upid, state)
             else:
-                self.log.warning("Pidfile %s not available for pyon process %s" % (pidfile, self.upid))
+                state = PidWrapper.FAILED
+                self.log.warning("Pidfile %s not available for pyon process %s, setting state to %s." % (pidfile, self.upid, str(state)))
+            self.control_cc_cache.set_state(self.upid, state)
 
 
         return state
