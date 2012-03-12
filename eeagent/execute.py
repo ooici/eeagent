@@ -120,9 +120,9 @@ class PyonPidWrapper(object):
                 except CalledProcessError, error:
                     # control_cc returns 2 when a process is still starting
                     if error.returncode == 2:
-                        state = PidWrapper.PENDING
-                    else:
                         state = PidWrapper.FAILED
+                    else:
+                        state = PidWrapper.PENDING
                     self.log.warning("Got return code %s from control_cc for upid %s. Setting state to %s." % (error.returncode, self.upid, str(state)))
                 self.control_cc_cache.set_state(self.upid, state)
             else:
