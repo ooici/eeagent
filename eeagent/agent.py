@@ -111,6 +111,7 @@ class MainRunnerThread(Thread):
 
 eeagent = None
 def death_handler(signum, frame):
+    global eeagent
     if not eeagent:
         return
     eeagent.end()
