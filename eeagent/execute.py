@@ -203,6 +203,7 @@ class PyonRelExe(object):
         self.pyon_args = pyon_args.split()
 
         self.control_cc_cache = ControlCCCache()
+        self.tempfiles = []
 
     def set_state_change_callback(self, cb, user_arg):
         self._supdexe.set_state_change_callback(cb, user_arg)
@@ -215,28 +216,39 @@ class PyonRelExe(object):
         if rel_file_str not in parameters:
             raise EEAgentParameterException("%s must be in the parameters for a pyon run" % (rel_file_str))
         rel_file_contents = parameters[rel_file_str]
-        (osf, tmp_file) = tempfile.mkstemp(text=True)
+
+        prefix = "%s." % rel_file_contents.get("name", "tmp")
+        rel_suffix = ".rel.yml"
+
+        (osf, tmp_file) = tempfile.mkstemp(prefix=prefix, suffix=rel_suffix, text=True)
         os.write(osf, json.dumps(rel_file_contents))
         os.close(osf)
+        self.tempfiles.append(tmp_file)
 
         extra_args = parameters.get("container_args", [])
 
         try:
             logging_cfg = parameters["logging"]
-            (log_osf, log_tmp_file) = tempfile.mkstemp(text=True)
+            log_suffix = ".logging.yml"
+            (log_osf, log_tmp_file) = tempfile.mkstemp(prefix=prefix,
+                    suffix=log_suffix, text=True)
             os.write(log_osf, json.dumps(logging_cfg))
             os.close(log_osf)
             extra_args.extend(["--logcfg", log_tmp_file])
+            self.tempfiles.append(log_tmp_file)
         except KeyError:
             # No logging config to add
             pass
 
         try:
             pyon_cfg = parameters["config"]
-            (pyon_cfg_osf, pyon_cfg_tmp_file) = tempfile.mkstemp(text=True)
+            cfg_suffix = ".config.yml"
+            (pyon_cfg_osf, pyon_cfg_tmp_file) = tempfile.mkstemp(prefix=prefix,
+                    suffix=cfg_suffix, text=True)
             os.write(pyon_cfg_osf, json.dumps(pyon_cfg))
             os.close(pyon_cfg_osf)
             extra_args.extend(["--config", pyon_cfg_tmp_file])
+            self.tempfiles.append(pyon_cfg_tmp_file)
         except KeyError:
             # No pyon config to add
             pass
@@ -249,7 +261,6 @@ class PyonRelExe(object):
             'working_directory' : self._pyon_dir,
         }
         rc = self._supdexe.run(name, supd_params)
-        #os.remove(tmp_file)
         return rc
 
     def get_known_pws(self):
@@ -271,6 +282,8 @@ class PyonRelExe(object):
 
     def terminate(self):
         self._supdexe.terminate()
+        for removeme in self.tempfiles:
+            os.remove(removeme)
 
 class SupDExe(object):
 
