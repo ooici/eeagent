@@ -2,7 +2,7 @@ import logging
 import threading
 from dashi.bootstrap import dashi_connect
 from pidantic.pidantic_exceptions import PIDanticStateException
-from eeagent.beatit import beat_it
+from eeagent.beatit import beat_it, make_beat_msg
 from eeagent.eeagent_exceptions import EEAgentParameterException
 from eeagent.execute import PidWrapper
 from eeagent.util import make_id
@@ -32,8 +32,11 @@ class EEAgentMessageHandler(object):
         self.dashi.handle(self.cleanup, "cleanup")
 
     @eeagent_lock
-    def dump_state(self):
-        beat_it(self.dashi, self.CFG, self._process_managers_map, log=self._log)
+    def dump_state(self, rpc=False):
+        if rpc:
+            return make_beat_msg(self._process_managers_map)
+        else:
+            beat_it(self.dashi, self.CFG, self._process_managers_map, log=self._log)
 
     @eeagent_lock
     def launch_process(self, u_pid, round, run_type, parameters):
