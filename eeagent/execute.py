@@ -78,6 +78,11 @@ class PidWrapper(object):
             return
         self._pidantic.terminate()
 
+    def restart(self):
+        if not self._pidantic:
+            return
+        self._pidantic.restart()
+
     def clean_up(self):
         if not self._pidantic:
             return

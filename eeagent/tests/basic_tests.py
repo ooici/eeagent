@@ -12,6 +12,7 @@ from eeagent.agent import EEAgentMain, MainRunnerThread
 import simplejson as json
 from eeagent.client import EEAgentClient
 from eeagent.util import timeout_poll, _set_param_or_default, validate_config
+from httplib import CannotSendRequest
 
 g_slot_count=3
 g_timeout=5
@@ -238,6 +239,39 @@ class BasicEEAgentTests(unittest.TestCase):
         self.client.poll(count=1)
         pd = self._find_process_in_beat(upid, "EXITED")
         self.assertTrue(pd is not None)
+
+    def test_restart(self):
+        from time import sleep
+        params = {'exec' : "/bin/sleep", 'argv' : ["10",]}
+        (upid, round) = self.client.launch(params)
+        timeout_poll(self.client, 3)
+        self.client.dump()
+        self.client.poll(count=1)
+        pd = self._find_process_in_beat(upid, "RUNNING")
+        self.assertTrue(pd is not None)
+
+        pidw = self.eeagent._factory.get_all().items()[0][1]
+        while True:
+            try:
+                original_pid = pidw.get_all_state()[0]['pid']
+                break
+            except CannotSendRequest:
+                sleep(1)
+
+        self.client.restart(upid, round)
+
+        self.client.poll(count=1)
+
+        while True:
+            try:
+                pidw = self.eeagent._factory.get_all().items()[0][1]
+                break
+            except CannotSendRequest:
+                sleep(1)
+        new_pid = pidw.get_all_state()[0]['pid']
+
+        assert original_pid != new_pid
+
 
     def test_basic_util(self):
         kwvals = {}

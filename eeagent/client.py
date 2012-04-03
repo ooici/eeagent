@@ -30,6 +30,9 @@ class EEAgentClient(object):
     def terminate(self, upid, round):
         self.dashi.fire(self.ee_name, "terminate_process", u_pid=upid, round=round)
 
+    def restart(self, upid, round):
+        self.dashi.fire(self.ee_name, "restart_process", u_pid=upid, round=round)
+
     def dump(self):
         self.dashi.fire(self.ee_name, "dump_state")
 

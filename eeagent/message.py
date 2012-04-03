@@ -28,6 +28,7 @@ class EEAgentMessageHandler(object):
 
         self.dashi.handle(self.launch_process, "launch_process")
         self.dashi.handle(self.terminate_process, "terminate_process")
+        self.dashi.handle(self.restart_process, "restart_process")
         self.dashi.handle(self.dump_state, "dump_state")
         self.dashi.handle(self.cleanup, "cleanup")
 
@@ -63,6 +64,18 @@ class EEAgentMessageHandler(object):
             process.terminate()
         except PIDanticStateException, pse:
             self._log.log(logging.WARN, "Attempt to terminate a process in the state %s" % (str(process.get_state())))
+
+    @eeagent_lock
+    def restart_process(self, u_pid, round):
+        print "PDA INSIDE RESTART"
+        process = self._find_proc(u_pid, round)
+        if not process:
+            return
+        try:
+            print process.__class__.__name__
+            process.restart()
+        except PIDanticStateException, pse:
+            self._log.log(logging.WARN, "Attempt to restart a process in the state %s" % (str(process.get_state())))
 
     @eeagent_lock
     def cleanup(self, u_pid, round):
