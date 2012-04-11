@@ -242,7 +242,7 @@ class BasicEEAgentTests(unittest.TestCase):
 
     def test_restart(self):
         from time import sleep
-        params = {'exec' : "/bin/sleep", 'argv' : ["10",]}
+        params = {'exec' : "/bin/sleep", 'argv' : ["30",]}
         (upid, round) = self.client.launch(params)
         timeout_poll(self.client, 3)
         self.client.dump()
@@ -259,7 +259,6 @@ class BasicEEAgentTests(unittest.TestCase):
                 sleep(1)
 
         self.client.restart(upid, round)
-
         self.client.poll(count=1)
 
         while True:
@@ -270,6 +269,7 @@ class BasicEEAgentTests(unittest.TestCase):
                 sleep(1)
         new_pid = pidw.get_all_state()[0]['pid']
 
+        assert new_pid != 0
         assert original_pid != new_pid
 
 

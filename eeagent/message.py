@@ -67,7 +67,6 @@ class EEAgentMessageHandler(object):
 
     @eeagent_lock
     def restart_process(self, u_pid, round):
-        print "PDA INSIDE RESTART"
         process = self._find_proc(u_pid, round)
         if not process:
             return
