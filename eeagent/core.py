@@ -16,7 +16,6 @@ class EEAgentCore(object):
     def __init__(self, CFG, process_managers_map, log):
         self.CFG = CFG
         self._process_managers_map = process_managers_map
-        self.pd_name = CFG.pd.name
         self.ee_name = CFG.eeagent.name
 
         self._log = log
