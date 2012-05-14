@@ -6,24 +6,22 @@ from eeagent.beatit import beat_it, make_beat_msg
 from eeagent.eeagent_exceptions import EEAgentParameterException
 from eeagent.execute import PidWrapper
 from eeagent.util import make_id
-
-def eeagent_lock(func):
-    def call(self, *args,**kwargs):
-        with self._lock:
-            return func(self, *args,**kwargs)
-    return call
-
+from eeagent.core import EEAgentCore
 
 class EEAgentMessageHandler(object):
 
-    def __init__(self, CFG, process_managers_map, log):
+    def __init__(self, CFG, process_managers_map, log, core_class=None):
+
+        if core_class:
+            self.core = core_class(CFG, process_managers_map, log)
+        else:
+            self.core = EEAgentCore(CFG, process_managers_map, log)
+
         self.CFG = CFG
         self._process_managers_map = process_managers_map
-        self.pd_name = CFG.pd.name
         self.ee_name = CFG.eeagent.name
         self.exchange = CFG.server.amqp.exchange
         self._log = log
-        self._lock = threading.RLock()
         self.dashi = dashi_connect(self.ee_name, CFG)
 
         self.dashi.handle(self.launch_process, "launch_process")
@@ -32,64 +30,23 @@ class EEAgentMessageHandler(object):
         self.dashi.handle(self.dump_state, "dump_state")
         self.dashi.handle(self.cleanup, "cleanup")
 
-    @eeagent_lock
     def dump_state(self, rpc=False):
         if rpc:
             return make_beat_msg(self._process_managers_map)
         else:
             beat_it(self.dashi, self.CFG, self._process_managers_map, log=self._log)
 
-    @eeagent_lock
     def launch_process(self, u_pid, round, run_type, parameters):
-        if run_type != self.CFG.eeagent.launch_type.name:
-            raise EEAgentParameterException("Unknown run type %s" % (run_type))
+        self.core.launch_process(u_pid, round, run_type, parameters)
 
-        try:
-            factory = self._process_managers_map
-            factory.run(make_id(u_pid, round), parameters)
-        except Exception, ex:
-            self._log.exception("Error on launch %s" % (str(ex)))
-
-    def _find_proc(self, u_pid, round):
-        id = make_id(u_pid, round)
-        process = self._process_managers_map.lookup_id(id)
-        return process
-
-    @eeagent_lock
     def terminate_process(self, u_pid, round):
-        process = self._find_proc(u_pid, round)
-        if not process:
-            return
-        try:
-            process.terminate()
-        except PIDanticStateException, pse:
-            self._log.log(logging.WARN, "Attempt to terminate a process in the state %s" % (str(process.get_state())))
+        self.core.terminate_process(u_pid, round)
 
-    @eeagent_lock
     def restart_process(self, u_pid, round):
-        process = self._find_proc(u_pid, round)
-        if not process:
-            return
-        try:
-            print process.__class__.__name__
-            process.restart()
-        except PIDanticStateException, pse:
-            self._log.log(logging.WARN, "Attempt to restart a process in the state %s" % (str(process.get_state())))
+        self.core.restart_process(u_pid, round)
 
-    @eeagent_lock
     def cleanup(self, u_pid, round):
-        allowed_states = [PidWrapper.PENDING, PidWrapper.TERMINATED, PidWrapper.EXITED, PidWrapper.REJECTED, PidWrapper.FAILED]
-        process = self._find_proc(u_pid, round)
-        if not process:
-            return
-        state = process.get_state()
-        if state not in allowed_states:
-            self._log.log(logging.WARN, "Attempt to cleanup a process in the state %s" % (str(process.get_state())))
-
-        try:
-            process.clean_up()
-        except Exception, ex:
-            self._log.log(logging.WARN, "Failed to cleanup: %s" % (str(ex)))
+        self.core.cleanup(u_pid, round)
 
     def poll(self, count=None, timeout=None):
         if timeout:
