@@ -1,6 +1,8 @@
 import threading
 from eeagent.util import make_id
 from eeagent.execute import PidWrapper
+from eeagent.eeagent_exceptions import EEAgentParameterException
+from pidantic.pidantic_exceptions import PIDanticStateException
 
 def eeagent_lock(func):
     def call(self, *args,**kwargs):
