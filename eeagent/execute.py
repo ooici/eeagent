@@ -4,6 +4,7 @@ import logging
 import simplejson as json
 from subprocess import check_call, CalledProcessError
 from pidantic.supd.pidsupd import SupDPidanticFactory
+from pidantic.pyon.pidpyon import PyonPidanticFactory
 from eeagent.eeagent_exceptions import EEAgentParameterException
 from eeagent.util import _set_param_or_default
 
@@ -23,7 +24,7 @@ class PidWrapper(object):
     FAILED = (850, "FAILED")
     REJECTED = (900, "REJECTED")
     INVALID = (999, "INVALID")
-    
+
     state_map = {}
     state_map["STATE_INITIAL"] = PENDING
     state_map["STATE_PENDING"] = PENDING
@@ -92,7 +93,8 @@ class PidWrapper(object):
     def set_state_change_callback(self, cb, user_arg):
         self._pidantic.set_state_change_callback(cb, user_arg)
 
-class PyonPidWrapper(object):
+
+class PyonSinglePidWrapper(object):
     """This class is used to wrap a PidWrapper so we can get the state from
     the control_cc program, rather than just asking supervisord for that
     state.
@@ -133,7 +135,6 @@ class PyonPidWrapper(object):
                 self.log.warning("Pidfile %s not available for pyon process %s, keeping state at %s." % (pidfile, self.upid, str(state)))
             self.control_cc_cache.set_state(self.upid, state)
 
-
         return state
 
     # The rest of these are passthroughs
@@ -162,6 +163,7 @@ class PyonPidWrapper(object):
     def set_state_change_callback(self, cb, user_arg):
         self.pidwrapper.set_state_change_callback(cb, user_arg)
 
+
 class ControlCCCache(object):
     """
     This is a cache indexed by upid to mark whether a upid has gotten
@@ -177,13 +179,70 @@ class ControlCCCache(object):
         self._has_control_cc_state[upid] = state
 
 
-        
 class PyonExe(object):
 
-    def __init__(self, log=logging):
+    def __init__(self, eeagent_cfg, pyon_container, log=logging):
         self.log = log
         self.log.debug("Starting PyonExe")
+        self._eename = eeagent_cfg.name
+        self._slots = int(eeagent_cfg.slots)
+        self._working_dir = eeagent_cfg.launch_type.persistence_directory
+        self._known_pws = {}
+
+        self._factory = PyonPidanticFactory(pyon_container=pyon_container,
+            name=self._eename, directory=self._working_dir, log=self.log)
+
+    def set_state_change_callback(self, cb, user_arg):
+        # TODO: use this
         pass
+
+        #self._supdexe.set_state_change_callback(cb, user_arg)
+
+    def run(self, name, parameters):
+
+        pyon_params = {}
+
+        pid = self._factory.get_pidantic(directory=self._working_dir,
+                process_name=name,
+                pyon_name=parameters.get('name'),
+                module=parameters.get('module'),
+                cls=parameters.get('cls'))
+
+        pw = PidWrapper(self, name, p=pid)
+        self._known_pws[name] = pw
+
+        #if self._state_change_cb:
+            #pw.set_state_change_callback(self._state_change_cb, self._state_change_cb_arg)
+
+        running_jobs = self._get_running()
+        if len(running_jobs) <= self._slots:
+            pid.start()
+        else:
+            pid.cancel_request()
+        return None
+
+    def poll(self):
+        return self._factory.poll()
+
+    def terminate(self):
+        self._factory.terminate()
+
+    def get_all(self):
+        return self._known_pws
+
+    def _get_running(self):
+        running_states = [PidWrapper.RUNNING, PidWrapper.TERMINATING, PidWrapper.PENDING]
+        a = self.get_all().values()
+        running = [i.get_state() for i in a]
+
+        running = [i for i in a if i.get_state() in running_states]
+        return running
+
+    def lookup_id(self, name):
+        if name not in self._known_pws:
+            return None
+        return self._known_pws[name]
+
 
 class PyonRelExe(object):
 
@@ -215,7 +274,7 @@ class PyonRelExe(object):
 
     def run(self, name, parameters):
         # check parameters and massage into a supd call
-        
+
         rel_file_str = "rel"
 
         if rel_file_str not in parameters:
@@ -263,7 +322,7 @@ class PyonRelExe(object):
         supd_params = {
             'exec': self._pyon_exe,
             'argv': args,
-            'working_directory' : self._pyon_dir,
+            'working_directory': self._pyon_dir,
         }
         rc = self._supdexe.run(name, supd_params)
         return rc
@@ -278,7 +337,7 @@ class PyonRelExe(object):
         _all = self._supdexe.get_all()
         wrapped = {}
         for upid, pidwrapper in _all.iteritems():
-            wrapped[upid] = PyonPidWrapper(pidwrapper, self._pyon_dir,
+            wrapped[upid] = PyonSinglePidWrapper(pidwrapper, self._pyon_dir,
                     self.control_cc_cache, log=self.log)
         return wrapped
 
@@ -289,6 +348,7 @@ class PyonRelExe(object):
         self._supdexe.terminate()
         for removeme in self.tempfiles:
             os.remove(removeme)
+
 
 class SupDExe(object):
 
@@ -341,7 +401,7 @@ class SupDExe(object):
 
     def get_known_pws(self):
         return self._known_pws
-        
+
     def _remove_proc(self, proc_name):
         del self._known_pws[proc_name]
 
@@ -352,7 +412,7 @@ class SupDExe(object):
 
     def get_all(self):
         return self._known_pws
-        
+
     def _get_running(self):
         running_states = [PidWrapper.RUNNING, PidWrapper.TERMINATING, PidWrapper.PENDING]
         a = self.get_all().values()
@@ -367,12 +427,16 @@ class SupDExe(object):
     def terminate(self):
         self._factory.terminate()
 
-def get_exe_factory(name, CFG, log=logging):
+
+def get_exe_factory(name, CFG, pyon_container=None, log=logging):
 
     if name == "supd":
         factory = SupDExe(CFG.eeagent, log=log)
     elif name == "pyon":
-        factory = PyonExe(log=log)
+        if not pyon_container:
+            msg = "You must supply a pyon container instance to 'pyon' launch_type"
+            raise EEAgentParameterException(msg)
+        factory = PyonExe(CFG.eeagent, pyon_container, log=log)
     elif name == "pyon_single":
         factory = PyonRelExe(CFG.eeagent, log=log)
     else:

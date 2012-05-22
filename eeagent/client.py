@@ -9,15 +9,20 @@ from eeagent.types import EEAgentLaunchType
 
 class EEAgentClient(object):
 
-    def __init__(self, incoming, CFG, log=logging):
+    def __init__(self, incoming=None, CFG=None, dashi=None, ee_name=None,
+            pd_name=None, handle_heartbeat=True, log=logging):
         self.CFG = CFG
-        self.ee_name = CFG.eeagent.name
-        self.pd_name = CFG.pd.name
-        self.exchange = CFG.server.amqp.exchange
+        self.ee_name = ee_name or CFG.eeagent.name
+        if dashi:
+            self.dashi = dashi
+        else:
+            self.pd_name = pd_name or CFG.pd.name
+            self.exchange = CFG.server.amqp.exchange
+            self.dashi = dashi_connect(self.pd_name, CFG)
         self._log = log
-        self.dashi = dashi_connect(self.pd_name, CFG)
         self.incoming = incoming
-        self.dashi.handle(self.heartbeat, "heartbeat")
+        if handle_heartbeat:
+            self.dashi.handle(self.heartbeat, "heartbeat")
 
     def heartbeat(self, message):
         self.incoming(json.dumps(message))
@@ -33,8 +38,11 @@ class EEAgentClient(object):
     def restart(self, upid, round):
         self.dashi.fire(self.ee_name, "restart_process", u_pid=upid, round=round)
 
-    def dump(self):
-        self.dashi.fire(self.ee_name, "dump_state")
+    def dump(self, rpc=True):
+        if rpc:
+            return self.dashi.call(self.ee_name, "dump_state", rpc=True
+        else:
+            self.dashi.fire(self.ee_name, "dump_state")
 
     def cleanup(self, upid, round):
         self.dashi.fire(self.ee_name, "cleanup", u_pid=upid, round=round)
