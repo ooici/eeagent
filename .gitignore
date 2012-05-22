@@ -5,3 +5,5 @@
 *.sock
 *.pid
 build
+logs
+.ropeproject
