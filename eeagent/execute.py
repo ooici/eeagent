@@ -122,8 +122,7 @@ class PyonSinglePidWrapper(object):
             if os.access(pidfile, os.R_OK):
                 try:
                     check_call([self._control_cc, pidfile, "status"], cwd=self._pyon_dir)
-                    #TODO: demote thisto debug once we're happy with control_cc
-                    self.log.info("Got return code %s from control_cc for upid %s. Setting state to %s." % ('0', self.upid, str(state)))
+                    self.log.debug("Got return code %s from control_cc for upid %s. Setting state to %s." % ('0', self.upid, str(state)))
                 except CalledProcessError, error:
                     # control_cc returns 2 when a process is still starting
                     if error.returncode == 2:
@@ -193,10 +192,7 @@ class PyonExe(object):
             name=self._eename, directory=self._working_dir, log=self.log)
 
     def set_state_change_callback(self, cb, user_arg):
-        # TODO: use this
-        pass
-
-        #self._supdexe.set_state_change_callback(cb, user_arg)
+        self._factory.set_state_change_callback(cb, user_arg)
 
     def run(self, name, parameters):
 
