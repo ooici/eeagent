@@ -38,9 +38,9 @@ class EEAgentClient(object):
     def restart(self, upid, round):
         self.dashi.fire(self.ee_name, "restart_process", u_pid=upid, round=round)
 
-    def dump(self, rpc=True):
+    def dump(self, rpc=False):
         if rpc:
-            return self.dashi.call(self.ee_name, "dump_state", rpc=True
+            return self.dashi.call(self.ee_name, "dump_state", rpc=rpc)
         else:
             self.dashi.fire(self.ee_name, "dump_state")
 
