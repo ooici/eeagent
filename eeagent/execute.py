@@ -191,8 +191,22 @@ class PyonExe(object):
         self._factory = PyonPidanticFactory(pyon_container=pyon_container,
             name=self._eename, directory=self._working_dir, log=self.log)
 
+        pidantic_instances = self._factory.reload_instances()
+        for name in pidantic_instances:
+            pidantic = pidantic_instances[name]
+            pw = PidWrapper(self, name)
+            pw.set_pidantic(pidantic)
+            self._known_pws[name] = pw
+        self._state_change_cb = None
+        self._state_change_cb_arg = None
+
     def set_state_change_callback(self, cb, user_arg):
-        self._factory.set_state_change_callback(cb, user_arg)
+        self._state_change_cb = cb
+        self._state_change_cb_arg = user_arg
+
+        for name in self._known_pws:
+            pw = self._known_pws['name']
+            pw.set_state_change_callback(self._state_change_cb, self._state_change_cb_arg)
 
     def run(self, name, parameters):
 
