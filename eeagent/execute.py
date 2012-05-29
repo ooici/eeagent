@@ -286,10 +286,13 @@ class PyonRelExe(object):
         # check parameters and massage into a supd call
 
         rel_file_str = "rel"
+        rel_params = ["name", "module", "cls"]
 
-        if rel_file_str not in parameters:
-            raise EEAgentParameterException("%s must be in the parameters for a pyon run" % (rel_file_str))
-        rel_file_contents = parameters[rel_file_str]
+        if rel_file_str not in parameters and not all(x in rel_params for x in parameters.keys()):
+            raise EEAgentParameterException("a rel or name, module, class, must be in the parameters for a pyon run: %s" % parameters)
+        rel_file_contents = parameters.get('rel_file_str')
+        if not rel_file_contents:
+            rel_file_contents = self._build_rel(parameters['name'], parameters['module'], parameters['cls'])
 
         prefix = "%s." % rel_file_contents.get("name", "tmp")
         rel_suffix = ".rel.yml"
@@ -336,6 +339,25 @@ class PyonRelExe(object):
         }
         rc = self._supdexe.run(name, supd_params)
         return rc
+
+    def _build_rel(self, name, module, cls):
+        rel = {
+            'type': 'release',
+            'version': '0.1',
+            'description': 'deploy started by eeagent',
+            'ion': '0.0.1',
+            'name': 'eeagent_deploy',
+            'apps': [
+                {
+                'name': name,
+                'description': 'process started by eeagent',
+                'version': '0.1',
+                'processapp': [name, module, cls]
+                }
+            ]
+        }
+
+        return rel
 
     def get_known_pws(self):
         return self._supdexe.get_known_pws()
