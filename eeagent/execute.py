@@ -205,7 +205,7 @@ class PyonExe(object):
         self._state_change_cb_arg = user_arg
 
         for name in self._known_pws:
-            pw = self._known_pws['name']
+            pw = self._known_pws[name]
             pw.set_state_change_callback(self._state_change_cb, self._state_change_cb_arg)
 
     def run(self, name, parameters):
@@ -288,9 +288,9 @@ class PyonRelExe(object):
         rel_file_str = "rel"
         rel_params = ["name", "module", "cls"]
 
-        if rel_file_str not in parameters and not all(x in rel_params for x in parameters.keys()):
+        if rel_file_str not in parameters and not all(x in rel_params for x in parameters):
             raise EEAgentParameterException("a rel or name, module, class, must be in the parameters for a pyon run: %s" % parameters)
-        rel_file_contents = parameters.get('rel_file_str')
+        rel_file_contents = parameters.get(rel_file_str)
         if not rel_file_contents:
             rel_file_contents = self._build_rel(parameters['name'], parameters['module'], parameters['cls'])
 
