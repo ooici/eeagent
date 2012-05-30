@@ -288,7 +288,7 @@ class PyonRelExe(object):
         rel_file_str = "rel"
         rel_params = ["name", "module", "cls"]
 
-        if rel_file_str not in parameters and not all(x in rel_params for x in parameters):
+        if rel_file_str not in parameters and not all(x in parameters for x in rel_params):
             raise EEAgentParameterException("a rel or name, module, class, must be in the parameters for a pyon run: %s" % parameters)
         rel_file_contents = parameters.get(rel_file_str)
         if not rel_file_contents:
