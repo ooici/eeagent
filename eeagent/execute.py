@@ -1,5 +1,6 @@
 import os
 import tempfile
+import yaml
 import logging
 import simplejson as json
 from subprocess import check_call, CalledProcessError
@@ -212,11 +213,14 @@ class PyonExe(object):
 
         pyon_params = {}
 
+        config = yaml.dump(parameters.get('config', {}))
+
         pid = self._factory.get_pidantic(directory=self._working_dir,
                 process_name=name,
                 pyon_name=parameters.get('name'),
                 module=parameters.get('module'),
-                cls=parameters.get('cls'))
+                cls=parameters.get('cls'),
+                config=config)
 
         pw = PidWrapper(self, name, p=pid)
         self._known_pws[name] = pw
