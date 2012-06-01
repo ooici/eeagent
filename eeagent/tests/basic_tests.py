@@ -23,6 +23,7 @@ def _get_cmd_args():
     memory_name = str(uuid.uuid4()).split("-")[0]
     pdname = str(uuid.uuid4()).split("-")[0]
     eename = str(uuid.uuid4()).split("-")[0]
+    node_id = str(uuid.uuid4()).split("-")[0]
     tmp_dir = tempfile.mkdtemp(prefix="/tmp/supd")
 
     cmd_line_args = [
@@ -32,6 +33,7 @@ def _get_cmd_args():
          "--eeagent.launch_type.supd_directory=%s" % (tmp_dir),
          "--eeagent.name=%s" % (pdname),
          "--eeagent.slots=%d" % (g_slot_count),
+         "--eeagent.node_id=%s" % (node_id),
          "--pd.name=%s" % (eename),
          "--dashi.exchange=%s" % (eename),
          "--eeagent.heartbeat=%d" % (g_timeout),

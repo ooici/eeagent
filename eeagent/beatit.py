@@ -6,15 +6,21 @@ from eeagent.util import unmake_id
 def beat_it(dashi, CFG, pm, log=logging):
 
     try:
-        beat_msg = make_beat_msg(pm)
+        beat_msg = make_beat_msg(pm, CFG)
         log.log(logging.DEBUG, "Sending the heartbeat : %s" % (json.dumps(beat_msg)))
         dashi.fire(CFG.pd.name, "heartbeat", message=beat_msg)
     except Exception, ex:
         log.exception("Error Sending the heartbeat : %s" % (str(ex)))
 
-def make_beat_msg(pm):
+def make_beat_msg(pm, CFG):
     beat_msg = {}
-    beat_msg['eeagent_id'] = ""
+    beat_msg['eeagent_id'] = CFG.eeagent.name
+
+    # include node ID if it is present in config
+    node_id = CFG.eeagent.get('node_id')
+    if node_id is not None:
+        beat_msg['node_id'] = CFG.eeagent.node_id
+
     beat_msg['timestamp'] = str(datetime.datetime.now())
 
     beat_processes = []
