@@ -27,7 +27,7 @@ class EEAgentMessageHandler(object):
 
     def dump_state(self, rpc=False):
         if rpc:
-            return make_beat_msg(self._process_managers_map)
+            return make_beat_msg(self._process_managers_map, self.CFG)
         else:
             beat_it(self.dashi, self.CFG, self._process_managers_map, log=self._log)
 
