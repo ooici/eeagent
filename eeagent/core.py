@@ -1,4 +1,5 @@
 import threading
+import logging
 from eeagent.util import make_id
 from eeagent.execute import PidWrapper
 from eeagent.eeagent_exceptions import EEAgentParameterException
