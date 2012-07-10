@@ -218,6 +218,7 @@ class PyonExe(object):
         pid = self._factory.get_pidantic(directory=self._working_dir,
                 process_name=name,
                 pyon_name=parameters.get('name'),
+                module_uri=parameters.get('module_uri'),
                 module=parameters.get('module'),
                 cls=parameters.get('cls'),
                 config=config)
@@ -225,8 +226,8 @@ class PyonExe(object):
         pw = PidWrapper(self, name, p=pid)
         self._known_pws[name] = pw
 
-        #if self._state_change_cb:
-            #pw.set_state_change_callback(self._state_change_cb, self._state_change_cb_arg)
+        if self._state_change_cb:
+            pw.set_state_change_callback(self._state_change_cb, self._state_change_cb_arg)
 
         running_jobs = self._get_running()
         if len(running_jobs) <= self._slots:

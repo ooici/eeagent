@@ -32,7 +32,10 @@ class EEAgentMessageHandler(object):
             beat_it(self.dashi, self.CFG, self._process_managers_map, log=self._log)
 
     def launch_process(self, u_pid, round, run_type, parameters):
-        self.core.launch_process(u_pid, round, run_type, parameters)
+        try:
+            self.core.launch_process(u_pid, round, run_type, parameters)
+        except Exception, ex:
+            self._log.exception("Error on launch %s" % (str(ex)))
 
     def terminate_process(self, u_pid, round):
         self.core.terminate_process(u_pid, round)
