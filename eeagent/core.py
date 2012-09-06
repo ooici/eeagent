@@ -74,7 +74,6 @@ class EEAgentCore(object):
         if not process:
             return
         try:
-            print process.__class__.__name__
             process.restart()
         except PIDanticStateException, pse:
             self._log.log(logging.WARN, "Attempt to restart a process in the state %s" % (str(process.get_state())))
