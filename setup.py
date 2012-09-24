@@ -6,7 +6,7 @@ except ImportError:
     from distutils.core import setup
 
 import sys
-Version = "0.1"
+version = '0.1.0'
 
 if float("%d.%d" % sys.version_info[:2]) < 2.5:
     sys.stderr.write("Your Python version %d.%d.%d is not supported.\n" % sys.version_info[:3])
@@ -14,14 +14,14 @@ if float("%d.%d" % sys.version_info[:2]) < 2.5:
     sys.exit(1)
 
 setup(name='eeagent',
-      version=Version,
+      version=version,
       description='Execution Engine Agent',
       author='Nimbus Development Team',
       author_email='workspace-user@globus.org',
       url='http://www.nimbusproject.org/',
       packages=find_packages(),
       package_data={'eeagent': ['config/*.yml']},
-      dependency_links=['http://ooici.net/releases'],
+      dependency_links=['http://sddevrepo.oceanobservatories.org/releases'],
       keywords = "OOI Execution Agent",
       long_description="""Some other time""",
       license="Apache2",
