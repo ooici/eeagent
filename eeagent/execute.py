@@ -245,6 +245,9 @@ class PyonExe(object):
     def get_all(self):
         return self._known_pws
 
+    def _remove_proc(self, proc_name):
+        del self._known_pws[proc_name]
+
     def _get_running(self):
         running_states = [PidWrapper.RUNNING, PidWrapper.TERMINATING, PidWrapper.PENDING]
         a = self.get_all().values()
