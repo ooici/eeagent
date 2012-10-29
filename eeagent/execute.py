@@ -193,11 +193,11 @@ class PyonExe(object):
             name=self._eename, directory=self._working_dir, log=self.log)
 
         pidantic_instances = self._factory.reload_instances()
-        for name in pidantic_instances:
-            pidantic = pidantic_instances[name]
-            pw = PidWrapper(self, name)
+        for name, pidantic in pidantic_instances.iteritems():
+            upid = pidantic.get_name()
+            pw = PidWrapper(self, upid)
             pw.set_pidantic(pidantic)
-            self._known_pws[name] = pw
+            self._known_pws[upid] = pw
         self._state_change_cb = None
         self._state_change_cb_arg = None
 
