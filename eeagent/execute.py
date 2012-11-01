@@ -5,7 +5,6 @@ import logging
 import simplejson as json
 from subprocess import check_call, CalledProcessError
 from pidantic.supd.pidsupd import SupDPidanticFactory
-from pidantic.pyon.pidpyon import PyonPidanticFactory
 from eeagent.eeagent_exceptions import EEAgentParameterException
 from eeagent.util import _set_param_or_default
 
@@ -189,6 +188,7 @@ class PyonExe(object):
         self._working_dir = eeagent_cfg.launch_type.persistence_directory
         self._known_pws = {}
 
+        from pidantic.pyon.pidpyon import PyonPidanticFactory
         self._factory = PyonPidanticFactory(pyon_container=pyon_container,
             name=self._eename, directory=self._working_dir, log=self.log)
 
