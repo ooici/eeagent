@@ -193,6 +193,10 @@ class PyonExe(object):
             name=self._eename, directory=self._working_dir, log=self.log)
 
         pidantic_instances = self._factory.reload_instances()
+        if len(pidantic_instances.keys()) > 0:
+            self.log.error("Restarting eeagent, and found dead processes: %s" % 
+                    ','.join(pidantic_instances.keys()))
+
         for name, pidantic in pidantic_instances.iteritems():
             upid = pidantic.get_name()
             pw = PidWrapper(self, upid)
