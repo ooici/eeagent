@@ -6,7 +6,7 @@ import simplejson as json
 from subprocess import check_call, CalledProcessError
 from pidantic.supd.pidsupd import SupDPidanticFactory
 from eeagent.eeagent_exceptions import EEAgentParameterException
-from eeagent.util import _set_param_or_default
+from eeagent.util import _set_param_or_default, unmake_id
 
 
 class PidWrapper(object):
@@ -25,6 +25,8 @@ class PidWrapper(object):
     REJECTED = (900, "REJECTED")
     INVALID = (999, "INVALID")
 
+    RESTARTABLE_STATES = (TERMINATED, EXITED, REJECTED,)
+
     state_map = {}
     state_map["STATE_INITIAL"] = PENDING
     state_map["STATE_PENDING"] = PENDING
@@ -41,6 +43,10 @@ class PidWrapper(object):
         self._exe = exe
         self._error_message = "Launch request lost on submission"
 
+    def __repr__(self):
+        return "%s: %s in state %s" % (
+                self.__class__.__name__, self._name, self.get_state())
+
     def get_state(self):
         if not self._pidantic:
             return PidWrapper.FAILED
@@ -56,6 +62,13 @@ class PidWrapper(object):
         else:
             new_state = PidWrapper.state_map[state]
         return new_state
+
+    @property
+    def restartable(self):
+        if self.get_state() in self.RESTARTABLE_STATES:
+            return True
+        else:
+            return False
 
     def get_all_state(self):
         return self._pidantic.get_all_state()
@@ -260,10 +273,22 @@ class PyonExe(object):
         running = [i for i in a if i.get_state() in running_states]
         return running
 
-    def lookup_id(self, name):
-        if name not in self._known_pws:
-            return None
-        return self._known_pws[name]
+    def lookup_id(self, process_name, ignore_round=False):
+
+        if ignore_round:
+            process_upid, process_round = unmake_id(process_name)
+            for name, proc in self._known_pws.iteritems():
+                upid, round = unmake_id(name)
+
+                if process_upid == upid:
+                    return proc
+            else:
+                return None
+
+        else:
+            if process_name not in self._known_pws:
+                return None
+            return self._known_pws[process_name]
 
 
 class PyonRelExe(object):
@@ -374,8 +399,8 @@ class PyonRelExe(object):
     def get_known_pws(self):
         return self._supdexe.get_known_pws()
 
-    def lookup_id(self, name):
-        return self._supdexe.lookup_id(name)
+    def lookup_id(self, name, ignore_round=False):
+        return self._supdexe.lookup_id(name, ignore_round=ignore_round)
 
     def get_all(self):
         _all = self._supdexe.get_all()
@@ -449,10 +474,22 @@ class SupDExe(object):
     def _remove_proc(self, proc_name):
         del self._known_pws[proc_name]
 
-    def lookup_id(self, name):
-        if name not in self._known_pws:
-            return None
-        return self._known_pws[name]
+    def lookup_id(self, process_name, ignore_round=False):
+
+        if ignore_round:
+            process_upid, process_round = unmake_id(process_name)
+            for name, proc in self._known_pws.iteritems():
+                upid, round = unmake_id(name)
+
+                if process_upid == upid:
+                    return proc
+            else:
+                return None
+
+        else:
+            if process_name not in self._known_pws:
+                return None
+            return self._known_pws[process_name]
 
     def get_all(self):
         return self._known_pws
