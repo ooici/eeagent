@@ -1,7 +1,8 @@
 import logging
-import datetime
+from datetime import tzinfo, timedelta, datetime
 import simplejson as json
 from eeagent.util import unmake_id
+
 
 def beat_it(dashi, CFG, pm, log=logging):
 
@@ -12,7 +13,8 @@ def beat_it(dashi, CFG, pm, log=logging):
     except Exception, ex:
         log.exception("Error Sending the heartbeat : %s" % (str(ex)))
 
-def make_beat_msg(pm, CFG):
+
+def make_beat_msg(pm, CFG, log=logging):
     beat_msg = {}
     beat_msg['eeagent_id'] = CFG.eeagent.name
 
@@ -21,7 +23,8 @@ def make_beat_msg(pm, CFG):
     if node_id is not None:
         beat_msg['node_id'] = CFG.eeagent.node_id
 
-    beat_msg['timestamp'] = str(datetime.datetime.now())
+    # include timestamp in UTC, in iso8601/rfc3339
+    beat_msg['timestamp'] = datetime.now(utc).isoformat()
 
     beat_processes = []
     # we can have many process managers per eeagent, walk them all to get all the processes
@@ -38,5 +41,26 @@ def make_beat_msg(pm, CFG):
         beat_p = {'upid': name, 'round': round, 'state': state, 'msg': p.get_error_message()}
         beat_processes.append(beat_p)
     beat_msg['processes'] = beat_processes
-    
+
     return beat_msg
+
+
+_ZERO = timedelta(0)
+
+# WWWWHHHHHYYY is this not in standard library
+
+
+class UTC(tzinfo):
+    """UTC"""
+
+    def utcoffset(self, dt):
+        return _ZERO
+
+    def tzname(self, dt):
+        return "UTC"
+
+    def dst(self, dt):
+        return _ZERO
+
+
+utc = UTC()
