@@ -73,9 +73,10 @@ class EEAgentCore(object):
                 msg = ("BAD THING: A launch request for '%s' has been "
                    "recieved, but it is in state %s. The existing process has "
                    "round %s, and the PD is asking to start process with round "
-                   "%s. Maybe a message never arrived? Restarting now."
+                   "%s. Maybe a message never arrived? Leaving process as-is."
                    % (u_pid, state, existing_round, round))
                 self._log.warning(msg)
+                return
 
             try:
                 process.terminate()
