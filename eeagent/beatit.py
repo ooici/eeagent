@@ -1,3 +1,5 @@
+# Copyright 2013 University of Chicago
+
 import logging
 from datetime import tzinfo, timedelta, datetime
 import simplejson as json

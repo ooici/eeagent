@@ -1,3 +1,5 @@
+# Copyright 2013 University of Chicago
+
 import logging
 from dashi.bootstrap import dashi_connect
 from eeagent.beatit import beat_it, make_beat_msg

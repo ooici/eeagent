@@ -1,4 +1,5 @@
 #!/usr/bin/env pythonv
+# Copyright 2013 University of Chicago
 
 try:
     from setuptools import setup, find_packages
